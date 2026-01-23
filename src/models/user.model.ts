@@ -6,16 +6,26 @@ export async function signUpModel({
   email,
   hashedPassword,
   role,
+  verificationToken,
+  tokenExpiresAt,
 }: {
   username: string;
   email: string;
   hashedPassword: string;
   role: "user" | "admin";
+  verificationToken: string;
+  tokenExpiresAt: Date;
 }) {
   return (sql as any).begin(async (tx: any) => {
     const [user] = await tx`
-      INSERT INTO users (username, email, password, role)
-      VALUES (${username}, ${email}, ${hashedPassword}, ${role})
+      INSERT INTO users (username, email, password, role, verification_token, token_expires_at)
+      VALUES (
+        ${username}, 
+        ${email}, 
+        ${hashedPassword}, 
+        ${role}, 
+        ${verificationToken}, 
+        ${tokenExpiresAt})
       RETURNING id, username, email, role`;
 
     await tx`
@@ -27,6 +37,29 @@ export async function signUpModel({
 
     return user;
   });
+}
+
+// VERIFIER SI UTILISATEUR EXISTE AVEC TOKEN
+export async function checkUserVerification(token: string) {
+  const [user] = await sql`
+    SELECT id, verified, token_expires_at
+    FROM users
+    WHERE verification_token = ${token}
+  `;
+
+  return user;
+}
+
+// VERIFIER SI EMAIL VALIDÉ
+export async function verifyEmailModel(user_id: string) {
+  await sql`
+    UPDATE users
+    SET 
+      verified = TRUE,
+      verification_token = NULL,
+      token_expires_at = NULL
+    WHERE id = ${user_id}
+  `;
 }
 
 // VERIFIER SI UTILISATEUR EXISTE
