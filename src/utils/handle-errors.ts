@@ -13,8 +13,8 @@ export function handleErrors(err: unknown, res: Response) {
       })),
     });
   } else if (err instanceof Error) {
-    return res.status(400).json({ error: err.message });
+    return res.status(400).json({ message: err.message });
   } else {
-    return res.status(500).json({ error: "Erreur inconnue" });
+    return res.status(500).json({ message: "Erreur inconnue" });
   }
 }

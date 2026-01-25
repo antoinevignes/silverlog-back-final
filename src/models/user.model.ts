@@ -87,3 +87,52 @@ export async function checkUserExists(email: string, username = "") {
     throw error;
   }
 }
+
+export async function signInModel(email: string) {
+  const rows = await sql`
+    SELECT
+      u.id,
+      u.email,
+      u.username,
+      u.password,
+      u.verified,
+
+      MAX(CASE WHEN l.list_type = 'watchlist' THEN l.id END) AS watchlist_id,
+      MAX(CASE WHEN l.list_type = 'top' THEN l.id END) AS top_list_id
+
+    FROM users u
+    LEFT JOIN lists l ON l.user_id = u.id
+    WHERE u.email = ${email}
+    GROUP BY u.id;
+  `;
+
+  return rows[0];
+}
+
+export async function getRefreshTokenModel(refreshToken: string) {
+  const [token] = await sql`
+    SELECT *
+    FROM refresh_tokens
+    WHERE token = ${refreshToken}
+  `;
+
+  return token;
+}
+
+export async function storeRefreshTokenModel(
+  user_id: string,
+  refreshToken: string,
+  expires_at: Date,
+) {
+  await sql`
+    INSERT INTO refresh_tokens (user_id, token, expires_at)
+    VALUES (${user_id}, ${refreshToken}, ${expires_at})
+  `;
+}
+
+export async function deleteRefreshTokenModel(refreshToken: string) {
+  await sql`
+    DELETE FROM refresh_tokens
+    WHERE token = ${refreshToken}
+  `;
+}
