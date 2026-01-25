@@ -63,7 +63,7 @@ export async function optionalAuth(
       return refreshAccessToken(req, res, next);
     }
 
-    req.user = null;
+    req.user = null!;
     return next();
   }
 
@@ -84,7 +84,7 @@ export async function optionalAuth(
       return refreshAccessToken(req, res, next);
     }
 
-    req.user = null;
+    req.user = null!;
     next();
   }
 }
