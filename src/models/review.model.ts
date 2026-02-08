@@ -59,6 +59,7 @@ export async function getReviewsModel(user_id: string, movie_id: string) {
     ORDER BY 
       COUNT(l.*) DESC,
       r.created_at DESC
+    LIMIT 5;
   `;
 
   return rows;
