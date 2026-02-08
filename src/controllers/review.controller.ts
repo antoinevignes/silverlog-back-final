@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import z from "zod";
-import { createReviewModel } from "../models/review.model.js";
+import { createReviewModel, getReviewModel } from "../models/review.model.js";
 import { handleErrors } from "../utils/handle-errors.js";
 
 const reviewSchema = z.object({
@@ -28,6 +28,19 @@ export async function createReview(req: Request, res: Response) {
       success: true,
       review,
     });
+  } catch (error) {
+    return handleErrors(error, res);
+  }
+}
+
+export async function getReview(req: Request, res: Response) {
+  try {
+    const user_id = req.user!.id;
+    const { movie_id } = req.params;
+
+    const review = await getReviewModel(String(movie_id), user_id);
+
+    return res.status(200).json(review);
   } catch (error) {
     return handleErrors(error, res);
   }

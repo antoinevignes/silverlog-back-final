@@ -24,3 +24,13 @@ export async function createReviewModel(
 
   return rows[0];
 }
+
+export async function getReviewModel(movie_id: string, user_id: string) {
+  const rows = await sql`
+    SELECT * FROM reviews
+    WHERE movie_id = ${movie_id}
+    AND user_id = ${user_id}
+  `;
+
+  return rows[0];
+}
