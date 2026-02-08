@@ -178,14 +178,12 @@ export async function signIn(req: Request, res: Response) {
       httpOnly: true,
       secure: true,
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      partitioned: true,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      partitioned: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
