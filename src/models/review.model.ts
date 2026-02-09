@@ -1,3 +1,4 @@
+import type { Sql } from "postgres";
 import sql from "../db.js";
 
 export async function createReviewModel(
@@ -66,32 +67,16 @@ export async function getReviewsModel(user_id: string, movie_id: string) {
 }
 
 export async function likeReviewModel(review_id: string, user_id: string) {
-  return await sql.begin(async (tx) => {
-    const review = await tx`
-      SELECT * FROM reviews
-      WHERE id = ${review_id}`;
-
-    if (!review[0]) {
-      throw new Error("Review introuvable ou accès interdit");
-    }
-
-    const exists = await tx`
-      SELECT 1
-      FROM review_likes
+  return await sql`
+    WITH deleted AS (
+      DELETE FROM review_likes
       WHERE review_id = ${review_id}
-      AND user_id = ${user_id}`;
-
-    if (exists.length > 0) {
-      await tx`
-        DELETE FROM review_likes
-        WHERE review_id = ${review_id}
-        AND user_id = ${user_id}
-      `;
-    } else {
-      await tx`
-        INSERT INTO review_likes (review_id, user_id)
-        VALUES (${review_id}, ${user_id})
-      `;
-    }
-  });
+      AND user_id = ${user_id}
+      RETURNING *
+    )
+    INSERT INTO review_likes (review_id, user_id)
+    SELECT ${review_id}, ${user_id}
+    WHERE NOT EXISTS (SELECT 1 FROM deleted)
+    AND EXISTS (SELECT 1 FROM reviews WHERE id = ${review_id});
+  `;
 }
