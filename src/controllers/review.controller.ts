@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import z from "zod";
 import {
   createReviewModel,
+  deleteReviewModel,
   getReviewModel,
   getReviewsModel,
   likeReviewModel,
@@ -77,7 +78,28 @@ export async function likeReview(req: Request, res: Response) {
     const user_id = req.user!.id;
     const { review_id } = req.params;
 
+    if (!review_id) {
+      return res.status(400).json({ error: "Review ID  requis" });
+    }
+
     await likeReviewModel(String(review_id), user_id);
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    return handleErrors(error, res);
+  }
+}
+
+export async function deleteReview(req: Request, res: Response) {
+  try {
+    const user_id = req.user!.id;
+    const { review_id } = req.params;
+
+    if (!review_id) {
+      return res.status(400).json({ error: "Review ID  requis" });
+    }
+
+    await deleteReviewModel(String(review_id), user_id);
 
     return res.status(200).json({ success: true });
   } catch (error) {

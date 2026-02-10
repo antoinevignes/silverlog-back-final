@@ -80,3 +80,11 @@ export async function likeReviewModel(review_id: string, user_id: string) {
     AND EXISTS (SELECT 1 FROM reviews WHERE id = ${review_id});
   `;
 }
+
+export async function deleteReviewModel(review_id: string, user_id: string) {
+  return await sql`
+    DELETE FROM reviews
+    WHERE id = ${review_id}
+    AND user_id = ${user_id};
+  `;
+}
