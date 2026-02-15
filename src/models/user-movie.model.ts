@@ -44,7 +44,6 @@ export async function upsertRatingModel(
       movie_id,
       seen,
       rating,
-      seen_at,
       rated_at
     )
     VALUES (
@@ -52,7 +51,6 @@ export async function upsertRatingModel(
       ${movie_id},
       'true',
       ${rating},
-      NOW(),
       NOW()
     )
     ON CONFLICT (user_id, movie_id)
@@ -68,6 +66,19 @@ export async function upsertRatingModel(
 export async function deleteRatingModel(user_id: string, movie_id: string) {
   await sql`
     DELETE FROM user_movies
+    WHERE user_id = ${user_id}
+    AND movie_id = ${movie_id}
+  `;
+}
+
+export async function updateSeenDateModel(
+  date: Date,
+  user_id: string,
+  movie_id: string,
+) {
+  await sql`
+    UPDATE user_movies
+    SET seen_at = ${date}
     WHERE user_id = ${user_id}
     AND movie_id = ${movie_id}
   `;

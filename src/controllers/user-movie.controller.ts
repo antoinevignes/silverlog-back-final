@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import {
   deleteRatingModel,
   getStateModel,
+  updateSeenDateModel,
   upsertRatingModel,
 } from "../models/user-movie.model.js";
 import { handleErrors } from "../utils/handle-errors.js";
@@ -63,6 +64,24 @@ export async function deleteRating(req: Request, res: Response) {
     }
 
     await deleteRatingModel(user_id, String(movie_id));
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return handleErrors(err, res);
+  }
+}
+
+export async function updateSeenDate(req: Request, res: Response) {
+  try {
+    const user_id = req.user!.id;
+    const { movie_id } = req.params;
+    const { date } = req.body;
+
+    if (!movie_id) {
+      return res.status(400).json({ error: "Movie ID  requis" });
+    }
+
+    await updateSeenDateModel(date, user_id, String(movie_id));
 
     return res.status(200).json({ success: true });
   } catch (err) {
