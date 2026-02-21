@@ -65,9 +65,10 @@ export async function upsertRatingModel(
 
 export async function deleteRatingModel(user_id: string, movie_id: string) {
   await sql`
-    DELETE FROM user_movies
+    UPDATE user_movies
+    SET rating = NULL
     WHERE user_id = ${user_id}
-    AND movie_id = ${movie_id}
+    AND movie_id = ${movie_id};
   `;
 }
 
@@ -77,9 +78,31 @@ export async function updateSeenDateModel(
   movie_id: string,
 ) {
   await sql`
-    UPDATE user_movies
-    SET seen_at = ${date}
-    WHERE user_id = ${user_id}
-    AND movie_id = ${movie_id}
+    INSERT INTO user_movies (
+      user_id,
+      movie_id,
+      seen,
+      seen_at
+    )
+    VALUES (
+      ${user_id},
+      ${movie_id},
+      'true',
+      ${date}
+    )
+    ON CONFLICT (user_id, movie_id)
+    DO UPDATE SET
+      seen_at = EXCLUDED.seen_at;
   `;
+}
+
+export async function getSeenMoviesModel(user_id: string) {
+  const rows = await sql`
+    SELECT um.movie_id, um.rating, um.seen_at
+    FROM user_movies um 
+    WHERE um.user_id = ${user_id} 
+    AND um.seen_at IS NOT NULL
+  `;
+
+  return rows;
 }

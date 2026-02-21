@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import {
   deleteRatingModel,
+  getSeenMoviesModel,
   getStateModel,
   updateSeenDateModel,
   upsertRatingModel,
@@ -84,6 +85,18 @@ export async function updateSeenDate(req: Request, res: Response) {
     await updateSeenDateModel(date, user_id, String(movie_id));
 
     return res.status(200).json({ success: true });
+  } catch (err) {
+    return handleErrors(err, res);
+  }
+}
+
+export async function getSeenMovies(req: Request, res: Response) {
+  try {
+    const user_id = req.user!.id;
+
+    const seenMovies = await getSeenMoviesModel(user_id);
+
+    return res.status(200).json(seenMovies);
   } catch (err) {
     return handleErrors(err, res);
   }
