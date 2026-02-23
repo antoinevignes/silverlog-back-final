@@ -3,7 +3,9 @@ import userRoute from "./user.route.js";
 import tmdbRoute from "./tmdb.route.js";
 import movieRoute from "./movie.route.js";
 import userMovieRoute from "./user-movie.route.js";
+import reviewRoute from "./review.route.js";
 import sql from "../db.js";
+import listRoute from "./list.route.js";
 
 const router = Router();
 
@@ -11,6 +13,9 @@ router.use("/movies", movieRoute);
 router.use("/user", userRoute);
 router.use("/tmdb", tmdbRoute);
 router.use("/user_movie", userMovieRoute);
+router.use("/reviews", reviewRoute);
+router.use("/lists", listRoute);
+
 router.get("/health", async (req, res) => {
   try {
     await sql`SELECT 1`;
