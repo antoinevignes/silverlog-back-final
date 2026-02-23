@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { toggleMovieInListModel } from "../models/list.model.js";
+import {
+  getListMoviesModel,
+  toggleMovieInListModel,
+} from "../models/list.model.js";
 import { handleErrors } from "../utils/handle-errors.js";
 
 // AJOUTER FILM A UNE LISTE
@@ -23,6 +26,18 @@ export async function toggleMovieInList(req: Request, res: Response) {
       success: true,
       action: result.action,
     });
+  } catch (err) {
+    return handleErrors(err, res);
+  }
+}
+
+export async function getListMovies(req: Request, res: Response) {
+  try {
+    const { list_id } = req.params;
+
+    const watchlist = await getListMoviesModel(String(list_id));
+
+    return res.status(200).json(watchlist);
   } catch (err) {
     return handleErrors(err, res);
   }
