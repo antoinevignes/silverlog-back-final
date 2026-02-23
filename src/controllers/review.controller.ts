@@ -58,7 +58,7 @@ export async function getReview(req: Request, res: Response) {
 
 export async function getReviewsByMovie(req: Request, res: Response) {
   try {
-    const user_id = req.user!.id;
+    const user_id = req.user?.id ?? null;
     const { movie_id } = req.params;
 
     const reviews = await getReviewsModel(user_id, String(movie_id));

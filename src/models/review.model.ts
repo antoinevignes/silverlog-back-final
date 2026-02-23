@@ -36,7 +36,10 @@ export async function getReviewModel(movie_id: string, user_id: string) {
   return rows[0];
 }
 
-export async function getReviewsModel(user_id: string, movie_id: string) {
+export async function getReviewsModel(
+  user_id: string | null,
+  movie_id: string,
+) {
   const rows = await sql`
     SELECT 
       r.*,
