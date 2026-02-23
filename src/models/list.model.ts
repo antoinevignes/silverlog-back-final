@@ -69,7 +69,7 @@ export async function toggleMovieInListModel(
 // RECUPERER LES FILMS DE LA WATCHLIST
 export async function getListMoviesModel(list_id: string) {
   return await sql`
-    SELECT movie_id, added_at FROM list_movies
+    SELECT movie_id, added_at, position FROM list_movies
     WHERE list_id = ${list_id}
     ORDER BY added_at DESC
     `;
