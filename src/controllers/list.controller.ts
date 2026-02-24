@@ -18,14 +18,18 @@ const listSchema = z.object({
 
 export type List = z.infer<typeof listSchema>;
 
+const listParamsSchema = z.object({
+  list_id: z.coerce.number(),
+});
+
 // AJOUTER FILM A UNE LISTE
 export async function toggleMovieInList(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { list_id } = req.params;
+  const { list_id } = listParamsSchema.parse(req.params);
   const { movie_id } = req.body;
 
-  if (!list_id || !movie_id) {
-    throw new Error("Paramètres manquants");
+  if (!movie_id) {
+    throw new Error("Paramètre movie_id manquant");
   }
 
   const result = await toggleMovieInListModel(
@@ -42,7 +46,7 @@ export async function toggleMovieInList(req: Request, res: Response) {
 
 // RECUPERER FILMS D'UNE LISTE
 export async function getListMovies(req: Request, res: Response) {
-  const { list_id } = req.params;
+  const { list_id } = listParamsSchema.parse(req.params);
 
   const watchlist = await getListMoviesModel(String(list_id));
 
@@ -75,11 +79,7 @@ export async function createList(req: Request, res: Response) {
 
 // SUPPRIMER UNE LISTE
 export async function deleteList(req: Request, res: Response) {
-  const { list_id } = req.params;
-
-  if (!list_id) {
-    throw new Error("List ID requis");
-  }
+  const { list_id } = listParamsSchema.parse(req.params);
 
   const listExists = await findListById(Number(list_id));
   if (!listExists) {

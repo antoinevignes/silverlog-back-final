@@ -9,22 +9,32 @@ import {
 } from "../models/review.model.js";
 
 const reviewSchema = z.object({
-  movie_id: z.coerce.number(),
   content: z.string().min(1, "Contenu requis").max(140, "Contenu trop long"),
+});
+
+const movieParamSchema = z.object({
+  movie_id: z.coerce.number(),
+});
+
+const reviewParamSchema = z.object({
+  review_id: z.coerce.number(),
 });
 
 export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
 
   const parsed = reviewSchema.safeParse(req.body);
-  if (!parsed.success) {
+  const paramsParsed = movieParamSchema.safeParse(req.params);
+
+  if (!parsed.success || !paramsParsed.success) {
     return res.status(400).json({
       success: false,
-      message: "Paramètres manquants",
+      message: "Paramètres manquants ou invalides",
     });
   }
 
-  const { movie_id, content } = parsed.data;
+  const { content } = parsed.data;
+  const { movie_id } = paramsParsed.data;
 
   const review = await createReviewModel(user_id, movie_id, content);
 
@@ -36,7 +46,7 @@ export async function createReview(req: Request, res: Response) {
 
 export async function getReview(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = req.params;
+  const { movie_id } = movieParamSchema.parse(req.params);
 
   const review = await getReviewModel(String(movie_id), user_id);
 
@@ -49,7 +59,7 @@ export async function getReview(req: Request, res: Response) {
 
 export async function getReviewsByMovie(req: Request, res: Response) {
   const user_id = req.user?.id ?? null;
-  const { movie_id } = req.params;
+  const { movie_id } = movieParamSchema.parse(req.params);
 
   const reviews = await getReviewsModel(user_id, String(movie_id));
 
@@ -62,11 +72,7 @@ export async function getReviewsByMovie(req: Request, res: Response) {
 
 export async function likeReview(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { review_id } = req.params;
-
-  if (!review_id) {
-    return res.status(400).json({ error: "Review ID  requis" });
-  }
+  const { review_id } = reviewParamSchema.parse(req.params);
 
   await likeReviewModel(String(review_id), user_id);
 
@@ -75,11 +81,7 @@ export async function likeReview(req: Request, res: Response) {
 
 export async function deleteReview(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { review_id } = req.params;
-
-  if (!review_id) {
-    return res.status(400).json({ error: "Review ID  requis" });
-  }
+  const { review_id } = reviewParamSchema.parse(req.params);
 
   await deleteReviewModel(String(review_id), user_id);
 
