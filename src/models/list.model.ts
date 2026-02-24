@@ -52,7 +52,7 @@ export async function toggleMovieInListModel(
 
       position = Number(currentMax) + 1;
 
-      if (position > 50) {
+      if (position > 6) {
         return { action: "full" };
       }
     }
