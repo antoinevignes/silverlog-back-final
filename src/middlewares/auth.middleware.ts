@@ -108,8 +108,16 @@ async function refreshAccessToken(
     }
 
     if (!validToken) {
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      });
       return res.status(401).json({ error: "Session révoquée" });
     }
 
@@ -134,8 +142,16 @@ async function refreshAccessToken(
     req.user = decoded;
     next();
   } catch (error) {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    });
     res.status(401).json({
       error: "Session expirée, veuillez vous reconnecter",
     });

@@ -202,7 +202,15 @@ export async function signOut(req: Request, res: Response) {
     }
   }
 
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  });
   return res.status(200).json({ success: true });
 }
