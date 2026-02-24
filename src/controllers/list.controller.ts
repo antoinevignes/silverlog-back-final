@@ -7,7 +7,6 @@ import {
   getListsModel,
   toggleMovieInListModel,
 } from "../models/list.model.js";
-import { handleErrors } from "../utils/handle-errors.js";
 import z from "zod";
 
 // TYPES
@@ -19,95 +18,75 @@ const listSchema = z.object({
 
 export type List = z.infer<typeof listSchema>;
 
+const listParamsSchema = z.object({
+  list_id: z.coerce.number(),
+});
+
 // AJOUTER FILM A UNE LISTE
 export async function toggleMovieInList(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
-    const { list_id } = req.params;
-    const { movie_id } = req.body;
+  const user_id = req.user!.id;
+  const { list_id } = listParamsSchema.parse(req.params);
+  const { movie_id } = req.body;
 
-    if (!list_id || !movie_id) {
-      throw new Error("Paramètres manquants");
-    }
-
-    const result = await toggleMovieInListModel(
-      user_id,
-      String(list_id),
-      movie_id,
-    );
-
-    return res.status(200).json({
-      success: true,
-      action: result.action,
-    });
-  } catch (err) {
-    return handleErrors(err, res);
+  if (!movie_id) {
+    throw new Error("Paramètre movie_id manquant");
   }
+
+  const result = await toggleMovieInListModel(
+    user_id,
+    String(list_id),
+    movie_id,
+  );
+
+  return res.status(200).json({
+    success: true,
+    action: result.action,
+  });
 }
 
 // RECUPERER FILMS D'UNE LISTE
 export async function getListMovies(req: Request, res: Response) {
-  try {
-    const { list_id } = req.params;
+  const { list_id } = listParamsSchema.parse(req.params);
 
-    const watchlist = await getListMoviesModel(String(list_id));
+  const watchlist = await getListMoviesModel(String(list_id));
 
-    return res.status(200).json(watchlist);
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(200).json(watchlist);
 }
 
 // RECUPERER TOUTES LES LISTES DE L'UTILISATEUR
 export async function getLists(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
+  const user_id = req.user!.id;
 
-    const lists = await getListsModel(user_id);
+  const lists = await getListsModel(user_id);
 
-    res.status(200).json(lists);
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  res.status(200).json(lists);
 }
 
 // CREER LISTE
 export async function createList(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
+  const user_id = req.user!.id;
 
-    if (!req.body) {
-      throw new Error("Paramètres manquants");
-    }
-
-    const parsed = listSchema.parse(req.body);
-
-    await createListModel(user_id, parsed);
-
-    return res.status(201).json({ success: true });
-  } catch (err) {
-    return handleErrors(err, res);
+  if (!req.body) {
+    throw new Error("Paramètres manquants");
   }
+
+  const parsed = listSchema.parse(req.body);
+
+  await createListModel(user_id, parsed);
+
+  return res.status(201).json({ success: true });
 }
 
 // SUPPRIMER UNE LISTE
 export async function deleteList(req: Request, res: Response) {
-  try {
-    const { list_id } = req.params;
+  const { list_id } = listParamsSchema.parse(req.params);
 
-    if (!list_id) {
-      throw new Error("List ID requis");
-    }
-
-    const listExists = await findListById(Number(list_id));
-    if (!listExists) {
-      throw new Error("Cette liste n'existe pas");
-    }
-
-    await deleteListModel(Number(list_id));
-
-    return res.status(200).json({ success: "Liste supprimée" });
-  } catch (err) {
-    return handleErrors(err, res);
+  const listExists = await findListById(Number(list_id));
+  if (!listExists) {
+    throw new Error("Cette liste n'existe pas");
   }
+
+  await deleteListModel(Number(list_id));
+
+  return res.status(200).json({ success: "Liste supprimée" });
 }

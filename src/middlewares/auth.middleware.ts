@@ -1,19 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import type { JwtPayload } from "jsonwebtoken";
 import dotenv from "dotenv";
-import { getRefreshTokenModel } from "../models/user.model.js";
+import { getUserRefreshTokensModel } from "../models/user.model.js";
+import type { UserPayload } from "../types/db.js";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
-
-interface UserPayload extends JwtPayload {
-  id: string;
-  username: string;
-  email: string;
-  role?: string;
-  top_list_id?: number;
-  watchlist_id?: number;
-}
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -101,17 +93,33 @@ async function refreshAccessToken(
       return res.status(401).json({ error: "Refresh token manquant" });
     }
 
-    const tokenInDB = await getRefreshTokenModel(refreshToken);
-    if (!tokenInDB) {
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
-      return res.status(401).json({ error: "Session révoquée" });
-    }
-
     const decoded = jwt.verify(
       refreshToken,
       process.env.REFRESH_SECRET!,
     ) as UserPayload;
+
+    const tokensInDB = await getUserRefreshTokensModel(decoded.id);
+    let validToken = null;
+    for (const t of tokensInDB) {
+      if (await bcrypt.compare(refreshToken, t.token)) {
+        validToken = t;
+        break;
+      }
+    }
+
+    if (!validToken) {
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      });
+      return res.status(401).json({ error: "Session révoquée" });
+    }
 
     const newAccessToken = jwt.sign(
       {
@@ -134,8 +142,16 @@ async function refreshAccessToken(
     req.user = decoded;
     next();
   } catch (error) {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    });
     res.status(401).json({
       error: "Session expirée, veuillez vous reconnecter",
     });

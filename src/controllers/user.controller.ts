@@ -3,13 +3,14 @@ import bcrypt from "bcryptjs";
 import {
   checkUserExists,
   checkUserVerification,
-  deleteRefreshTokenModel,
+  deleteRefreshTokenByIdModel,
   signInModel,
   signUpModel,
   storeRefreshTokenModel,
   verifyEmailModel,
+  getUserRefreshTokensModel,
 } from "../models/user.model.js";
-import { handleErrors } from "../utils/handle-errors.js";
+import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
 import { Resend } from "resend";
 import generateEmail from "../utils/generate-email.js";
@@ -45,43 +46,39 @@ const loginSchema = z.object({
 
 // REGISTER
 export async function signUp(req: Request, res: Response) {
-  try {
-    const parsed = registerSchema.parse(req.body);
+  const parsed = registerSchema.parse(req.body);
 
-    const { username, email, password } = parsed;
+  const { username, email, password } = parsed;
 
-    const exists = await checkUserExists(email, username);
-    if (exists.emailExists || exists.usernameExists)
-      throw new Error("Email ou nom d'utilisateur déjà utilisé");
+  const exists = await checkUserExists(email, username);
+  if (exists.emailExists || exists.usernameExists)
+    throw new Error("Email ou nom d'utilisateur déjà utilisé");
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = await bcrypt.hash(email, 10);
-    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const hashedPassword = await bcrypt.hash(password, 14);
+  const verificationToken = await bcrypt.hash(email, 14);
+  const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await signUpModel({
-      username,
-      email,
-      hashedPassword,
-      role: "user",
-      verificationToken,
-      tokenExpiresAt,
-    });
+  await signUpModel({
+    username,
+    email,
+    hashedPassword,
+    role: "user",
+    verificationToken,
+    tokenExpiresAt,
+  });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: "Silverlog <onboarding@resend.dev>",
-      to: [email],
-      subject: "Silverlog - Activer votre compte",
-      html: generateEmail(verificationToken),
-    });
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: "Silverlog <onboarding@resend.dev>",
+    to: [email],
+    subject: "Silverlog - Activer votre compte",
+    html: generateEmail(verificationToken),
+  });
 
-    return res.status(201).json({
-      success:
-        "Utilisateur créé avec succès. Un lien de verification vous a été envoyé par email.",
-    });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(201).json({
+    success:
+      "Utilisateur créé avec succès. Un lien de verification vous a été envoyé par email.",
+  });
 }
 
 // VERIFIER EMAIL
@@ -96,107 +93,96 @@ export async function verifyEmail(req: Request, res: Response) {
 
   const token = parsed.data;
 
-  try {
-    const user = await checkUserVerification(token);
+  const user = await checkUserVerification(token);
 
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Token invalide" });
-    }
-
-    if (user.email_verified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email déjà vérifié" });
-    }
-
-    if (new Date(user.token_expires_at) < new Date()) {
-      return res.status(400).json({ success: false, message: "Token expiré" });
-    }
-
-    await verifyEmailModel(user.id);
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Email vérifié avec succès !" });
-  } catch (error) {
-    console.error("Erreur vérification email:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Erreur serveur",
-    });
+  if (!user) {
+    return res.status(400).json({ success: false, message: "Token invalide" });
   }
+
+  if (user.verified) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email déjà vérifié" });
+  }
+
+  if (!user.token_expires_at || new Date(user.token_expires_at) < new Date()) {
+    return res.status(400).json({ success: false, message: "Token expiré" });
+  }
+
+  await verifyEmailModel(user.id);
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Email vérifié avec succès !" });
 }
 
 // LOGIN
 export async function signIn(req: Request, res: Response) {
-  try {
-    const parsed = loginSchema.parse(req.body);
-    const { email, password } = parsed;
+  const parsed = loginSchema.parse(req.body);
+  const { email, password } = parsed;
 
-    const user = await signInModel(email);
-    if (!user) throw new Error("Email ou mot de passe invalide");
+  const user = await signInModel(email);
+  if (!user) throw new Error("Email ou mot de passe invalide");
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) throw new Error("Email ou mot de passe invalide");
+  if (!user.password) throw new Error("Email ou mot de passe invalide");
 
-    if (!user.verified)
-      throw new Error(
-        "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
-      );
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  if (!passwordMatch) throw new Error("Email ou mot de passe invalide");
 
-    const accessToken = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        top_list_id: user.top_list_id,
-        watchlist_id: user.watchlist_id,
-      },
-      process.env.ACCESS_SECRET!,
-      { expiresIn: "15m" },
+  if (!user.verified)
+    throw new Error(
+      "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
     );
 
-    const refreshToken = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        top_list_id: user.top_list_id,
-        watchlist_id: user.watchlist_id,
-      },
-      process.env.REFRESH_SECRET!,
-      { expiresIn: "7d" },
-    );
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    await storeRefreshTokenModel(user.id, refreshToken, expiresAt);
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
+  const accessToken = jwt.sign(
+    {
       id: user.id,
       username: user.username,
       email: user.email,
       top_list_id: user.top_list_id,
       watchlist_id: user.watchlist_id,
-    });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+    },
+    process.env.ACCESS_SECRET!,
+    { expiresIn: "15m" },
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      top_list_id: user.top_list_id,
+      watchlist_id: user.watchlist_id,
+    },
+    process.env.REFRESH_SECRET!,
+    { expiresIn: "7d" },
+  );
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 14);
+  await storeRefreshTokenModel(user.id, hashedRefreshToken, expiresAt);
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return res.status(200).json({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    top_list_id: user.top_list_id,
+    watchlist_id: user.watchlist_id,
+  });
 }
 
 // SIGNOUT
@@ -204,10 +190,27 @@ export async function signOut(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
 
   if (refreshToken) {
-    await deleteRefreshTokenModel(refreshToken);
+    const decoded = jwt.decode(refreshToken) as UserPayload | null;
+    if (decoded && decoded.id) {
+      const dbTokens = await getUserRefreshTokensModel(decoded.id);
+      for (const t of dbTokens) {
+        if (await bcrypt.compare(refreshToken, t.token)) {
+          await deleteRefreshTokenByIdModel(t.id);
+          break;
+        }
+      }
+    }
   }
 
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  });
   return res.status(200).json({ success: true });
 }
