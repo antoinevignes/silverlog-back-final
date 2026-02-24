@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import router from "./routes/index.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { errorHandler } from "./utils/handle-errors.js";
 
 dotenv.config();
 const { PORT } = process.env;
@@ -20,6 +21,7 @@ app.use(
 );
 
 app.use(router);
+app.use(errorHandler);
 
 app.listen(PORT || 8000, () =>
   console.log(`Listening on http://localhost:${PORT}`),

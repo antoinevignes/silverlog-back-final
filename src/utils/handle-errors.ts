@@ -1,7 +1,12 @@
-import type { Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-export function handleErrors(err: unknown, res: Response) {
+export function errorHandler(
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   console.error(err);
 
   if (err instanceof ZodError) {
