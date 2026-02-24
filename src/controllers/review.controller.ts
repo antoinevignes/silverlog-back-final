@@ -9,6 +9,7 @@ import {
 } from "../models/review.model.js";
 
 const reviewSchema = z.object({
+  movie_id: z.coerce.number(),
   content: z.string().min(1, "Contenu requis").max(140, "Contenu trop long"),
 });
 
@@ -24,17 +25,15 @@ export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
 
   const parsed = reviewSchema.safeParse(req.body);
-  const paramsParsed = movieParamSchema.safeParse(req.params);
 
-  if (!parsed.success || !paramsParsed.success) {
+  if (!parsed.success) {
     return res.status(400).json({
       success: false,
       message: "Paramètres manquants ou invalides",
     });
   }
 
-  const { content } = parsed.data;
-  const { movie_id } = paramsParsed.data;
+  const { movie_id, content } = parsed.data;
 
   const review = await createReviewModel(user_id, movie_id, content);
 
