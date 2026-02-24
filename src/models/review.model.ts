@@ -1,12 +1,12 @@
-import type { Sql } from "postgres";
 import sql from "../db.js";
+import type { Review, ReviewWithDetails } from "../types/db.js";
 
 export async function createReviewModel(
   user_id: string,
   movie_id: number,
   content: string,
 ) {
-  const rows = await sql`
+  const rows = await sql<Review[]>`
     INSERT INTO reviews (
         user_id,
         movie_id,
@@ -23,29 +23,29 @@ export async function createReviewModel(
     RETURNING *;
     `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 export async function getReviewModel(movie_id: string, user_id: string) {
-  const rows = await sql`
+  const rows = await sql<Review[]>`
     SELECT * FROM reviews
     WHERE movie_id = ${movie_id}
     AND user_id = ${user_id}
   `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 export async function getReviewsModel(
   user_id: string | null,
   movie_id: string,
 ) {
-  const rows = await sql`
+  const rows = await sql<ReviewWithDetails[]>`
     SELECT 
       r.*,
       u.username,
       um.rating,
-      COUNT(l.*) as like_count,
+      COUNT(l.*)::int as like_count,
       EXISTS (
         SELECT 1 FROM review_likes
         WHERE review_id = r.id

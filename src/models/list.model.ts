@@ -1,4 +1,5 @@
-import type { List } from "../controllers/list.controller.js";
+import type { List as ListPayload } from "../controllers/list.controller.js";
+import type { List, ListMovie } from "../types/db.js";
 import sql from "../db.js";
 
 // AJOUTER FILM A UNE LISTE
@@ -10,7 +11,7 @@ export async function toggleMovieInListModel(
   return await sql.begin(async (t) => {
     const tx = t as unknown as typeof sql;
 
-    const list = await tx`
+    const list = await tx<List[]>`
       SELECT id, list_type
       FROM lists
       WHERE id = ${list_id}
@@ -23,7 +24,7 @@ export async function toggleMovieInListModel(
 
     const listType = list[0].list_type;
 
-    const exists = await tx`
+    const exists = await tx<{ "?column?": number }[]>`
       SELECT 1
       FROM list_movies
       WHERE list_id = ${list_id}
@@ -57,7 +58,7 @@ export async function toggleMovieInListModel(
     let position: number | null = null;
 
     if (listType === "top") {
-      const result = await tx`
+      const result = await tx<{ total: number }[]>`
         SELECT COUNT(*)::int AS total
         FROM list_movies
         WHERE list_id = ${list_id}
@@ -68,7 +69,7 @@ export async function toggleMovieInListModel(
         return { action: "full" };
       }
 
-      const maxResult = await tx`
+      const maxResult = await tx<{ max: number }[]>`
         SELECT COALESCE(MAX(position), 0) AS max
         FROM list_movies
         WHERE list_id = ${list_id}
@@ -88,7 +89,7 @@ export async function toggleMovieInListModel(
 
 // RECUPERER LES FILMS DE LA WATCHLIST
 export async function getListMoviesModel(list_id: string) {
-  return await sql`
+  return await sql<ListMovie[]>`
     SELECT movie_id, added_at, position FROM list_movies
     WHERE list_id = ${list_id}
     ORDER BY added_at DESC
@@ -96,14 +97,14 @@ export async function getListMoviesModel(list_id: string) {
 }
 
 // FAIRE UNE LISTE
-export async function createListModel(user_id: string, list: List) {
-  const rows = await sql`
+export async function createListModel(user_id: string, list: ListPayload) {
+  const rows = await sql<List[]>`
         INSERT INTO lists (user_id, title, description, is_public, list_type)
         VALUES (${user_id}, ${list.title}, ${list.description}, ${list.is_public}, 'custom')
         RETURNING id, user_id, title, description, is_public, list_type
     `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 // RECUPERER TOUTES LES LISTES DE L'UTILISATEUR
@@ -112,12 +113,12 @@ export async function getListsModel(user_id: string) {
     return [];
   }
 
-  const rows = await sql`
+  const rows = await sql<List[]>`
   SELECT * FROM lists
   WHERE user_id = ${user_id}
   `;
 
-  return rows.length > 0 ? rows : [];
+  return rows;
 }
 
 // SUPPRIMER UNE LISTE
@@ -131,9 +132,9 @@ export async function deleteListModel(list_id: number) {
 //////// HELPERS //////////
 
 export async function findListById(list_id: number) {
-  const rows = await sql`
+  const rows = await sql<List[]>`
     SELECT * FROM lists
     WHERE id = ${list_id}
   `;
-  return rows[0];
+  return rows[0] || null;
 }

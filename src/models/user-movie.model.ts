@@ -1,7 +1,14 @@
 import sql from "../db.js";
+import type { UserMovie } from "../types/db.js";
+
+export interface MovieState {
+  seen: boolean;
+  rating: number | null;
+  lists: { id: number; list_type: string; title: string }[];
+}
 
 export async function getStateModel(user_id: string, movie_id: string) {
-  const rows = await sql`
+  const rows = await sql<MovieState[]>`
     WITH base AS (
       SELECT ${user_id}::int AS user_id, ${movie_id}::int AS movie_id
     )
@@ -30,7 +37,7 @@ export async function getStateModel(user_id: string, movie_id: string) {
     GROUP BY um.seen, um.rating;
     `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 export async function upsertRatingModel(
@@ -38,7 +45,7 @@ export async function upsertRatingModel(
   movie_id: string,
   rating: number,
 ) {
-  const rows = await sql`
+  const rows = await sql<UserMovie[]>`
     INSERT INTO user_movies (
       user_id,
       movie_id,
@@ -60,7 +67,7 @@ export async function upsertRatingModel(
     RETURNING *;
   `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 export async function deleteRatingModel(user_id: string, movie_id: string) {
@@ -97,7 +104,9 @@ export async function updateSeenDateModel(
 }
 
 export async function getSeenMoviesModel(user_id: string) {
-  const rows = await sql`
+  const rows = await sql<
+    { movie_id: number; rating: number | null; seen_at: Date }[]
+  >`
     SELECT um.movie_id, um.rating, um.seen_at
     FROM user_movies um 
     WHERE um.user_id = ${user_id} 

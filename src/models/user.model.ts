@@ -1,4 +1,5 @@
 import sql from "../db.js";
+import type { User, RefreshToken, List } from "../types/db.js";
 
 // CREER UTILISATEUR
 export async function signUpModel({
@@ -16,8 +17,10 @@ export async function signUpModel({
   verificationToken: string;
   tokenExpiresAt: Date;
 }) {
-  return (sql as any).begin(async (tx: any) => {
-    const [user] = await tx`
+  return sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    const [user] = await tx<User[]>`
       INSERT INTO users (username, email, password, role, verification_token, token_expires_at)
       VALUES (
         ${username}, 
@@ -28,20 +31,20 @@ export async function signUpModel({
         ${tokenExpiresAt})
       RETURNING id, username, email, role`;
 
-    await tx`
+    await tx<List[]>`
         INSERT INTO lists (user_id, list_type, title)
         VALUES
-          (${user.id}, 'watchlist', 'Watchlist'),
-          (${user.id}, 'top', 'Top 50')
+          (${user!.id}, 'watchlist', 'Watchlist'),
+          (${user!.id}, 'top', 'Top 50')
         RETURNING id, list_type`;
 
-    return user;
+    return user!;
   });
 }
 
 // VERIFIER SI UTILISATEUR EXISTE AVEC TOKEN
 export async function checkUserVerification(token: string) {
-  const [user] = await sql`
+  const [user] = await sql<User[]>`
     SELECT id, verified, token_expires_at
     FROM users
     WHERE verification_token = ${token}
@@ -65,7 +68,9 @@ export async function verifyEmailModel(user_id: string) {
 // VERIFIER SI UTILISATEUR EXISTE
 export async function checkUserExists(email: string, username = "") {
   try {
-    const rows = await sql`
+    const rows = await sql<
+      { email_exists: boolean; username_exists: boolean }[]
+    >`
       SELECT 
         email = ${email} as email_exists,
         username = ${username} as username_exists
@@ -88,8 +93,13 @@ export async function checkUserExists(email: string, username = "") {
   }
 }
 
+interface SignInUser extends User {
+  watchlist_id: number | null;
+  top_list_id: number | null;
+}
+
 export async function signInModel(email: string) {
-  const rows = await sql`
+  const rows = await sql<SignInUser[]>`
     SELECT
       u.id,
       u.email,
@@ -106,17 +116,17 @@ export async function signInModel(email: string) {
     GROUP BY u.id;
   `;
 
-  return rows[0];
+  return rows[0] || null;
 }
 
 export async function getRefreshTokenModel(refreshToken: string) {
-  const [token] = await sql`
+  const [token] = await sql<RefreshToken[]>`
     SELECT *
     FROM refresh_tokens
     WHERE token = ${refreshToken}
   `;
 
-  return token;
+  return token || null;
 }
 
 export async function storeRefreshTokenModel(

@@ -97,13 +97,13 @@ export async function verifyEmail(req: Request, res: Response) {
     return res.status(400).json({ success: false, message: "Token invalide" });
   }
 
-  if (user.email_verified) {
+  if (user.verified) {
     return res
       .status(400)
       .json({ success: false, message: "Email déjà vérifié" });
   }
 
-  if (new Date(user.token_expires_at) < new Date()) {
+  if (!user.token_expires_at || new Date(user.token_expires_at) < new Date()) {
     return res.status(400).json({ success: false, message: "Token expiré" });
   }
 
@@ -121,6 +121,8 @@ export async function signIn(req: Request, res: Response) {
 
   const user = await signInModel(email);
   if (!user) throw new Error("Email ou mot de passe invalide");
+
+  if (!user.password) throw new Error("Email ou mot de passe invalide");
 
   const passwordMatch = await bcrypt.compare(password, user.password);
   if (!passwordMatch) throw new Error("Email ou mot de passe invalide");
