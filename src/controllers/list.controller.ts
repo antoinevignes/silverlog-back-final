@@ -84,7 +84,7 @@ export async function createList(req: Request, res: Response) {
 
     await createListModel(user_id, parsed);
 
-    return res.status(201);
+    return res.status(201).json({ success: true });
   } catch (err) {
     return handleErrors(err, res);
   }
