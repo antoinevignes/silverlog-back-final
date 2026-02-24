@@ -37,6 +37,20 @@ export async function toggleMovieInListModel(
           AND movie_id = ${movie_id}
       `;
 
+      if (listType === "top") {
+        await tx`
+          WITH updated AS (
+            SELECT id, row_number() OVER (ORDER BY position) as new_pos
+            FROM list_movies
+            WHERE list_id = ${list_id}
+          )
+          UPDATE list_movies
+          SET position = updated.new_pos
+          FROM updated
+          WHERE list_movies.id = updated.id
+        `;
+      }
+
       return { action: "removed" };
     }
 
@@ -44,18 +58,23 @@ export async function toggleMovieInListModel(
 
     if (listType === "top") {
       const result = await tx`
+        SELECT COUNT(*)::int AS total
+        FROM list_movies
+        WHERE list_id = ${list_id}
+      `;
+      const currentCount = result[0]?.total || 0;
+
+      if (currentCount >= 6) {
+        return { action: "full" };
+      }
+
+      const maxResult = await tx`
         SELECT COALESCE(MAX(position), 0) AS max
         FROM list_movies
         WHERE list_id = ${list_id}
       `;
 
-      const currentMax = result[0]?.max || 0;
-
-      position = Number(currentMax) + 1;
-
-      if (position > 6) {
-        return { action: "full" };
-      }
+      position = Number(maxResult[0]?.max) + 1;
     }
 
     await tx`
