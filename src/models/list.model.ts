@@ -1,3 +1,4 @@
+import type { List } from "../controllers/list.controller.js";
 import sql from "../db.js";
 
 // AJOUTER FILM A UNE LISTE
@@ -73,4 +74,47 @@ export async function getListMoviesModel(list_id: string) {
     WHERE list_id = ${list_id}
     ORDER BY added_at DESC
     `;
+}
+
+// FAIRE UNE LISTE
+export async function createListModel(user_id: string, list: List) {
+  const rows = await sql`
+        INSERT INTO lists (user_id, title, description, is_public, list_type)
+        VALUES (${user_id}, ${list.title}, ${list.description}, ${list.is_public}, 'custom')
+        RETURNING id, user_id, title, description, is_public, list_type
+    `;
+
+  return rows[0];
+}
+
+// RECUPERER TOUTES LES LISTES DE L'UTILISATEUR
+export async function getListsModel(user_id: string) {
+  if (!user_id) {
+    return [];
+  }
+
+  const rows = await sql`
+  SELECT * FROM lists
+  WHERE user_id = ${user_id}
+  `;
+
+  return rows.length > 0 ? rows : [];
+}
+
+// SUPPRIMER UNE LISTE
+export async function deleteListModel(list_id: number) {
+  await sql`
+        DELETE FROM lists
+        WHERE id = ${list_id}
+    `;
+}
+
+//////// HELPERS //////////
+
+export async function findListById(list_id: number) {
+  const rows = await sql`
+    SELECT * FROM lists
+    WHERE id = ${list_id}
+  `;
+  return rows[0];
 }
