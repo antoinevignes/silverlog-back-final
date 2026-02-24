@@ -3,12 +3,14 @@ import bcrypt from "bcryptjs";
 import {
   checkUserExists,
   checkUserVerification,
-  deleteRefreshTokenModel,
+  deleteRefreshTokenByIdModel,
   signInModel,
   signUpModel,
   storeRefreshTokenModel,
   verifyEmailModel,
+  getUserRefreshTokensModel,
 } from "../models/user.model.js";
+import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
 import { Resend } from "resend";
 import generateEmail from "../utils/generate-email.js";
@@ -158,7 +160,8 @@ export async function signIn(req: Request, res: Response) {
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  await storeRefreshTokenModel(user.id, refreshToken, expiresAt);
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 14);
+  await storeRefreshTokenModel(user.id, hashedRefreshToken, expiresAt);
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
@@ -187,7 +190,16 @@ export async function signOut(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
 
   if (refreshToken) {
-    await deleteRefreshTokenModel(refreshToken);
+    const decoded = jwt.decode(refreshToken) as UserPayload | null;
+    if (decoded && decoded.id) {
+      const dbTokens = await getUserRefreshTokensModel(decoded.id);
+      for (const t of dbTokens) {
+        if (await bcrypt.compare(refreshToken, t.token)) {
+          await deleteRefreshTokenByIdModel(t.id);
+          break;
+        }
+      }
+    }
   }
 
   res.clearCookie("accessToken");

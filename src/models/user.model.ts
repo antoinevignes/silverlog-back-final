@@ -119,14 +119,16 @@ export async function signInModel(email: string) {
   return rows[0] || null;
 }
 
-export async function getRefreshTokenModel(refreshToken: string) {
-  const [token] = await sql<RefreshToken[]>`
+export async function getUserRefreshTokensModel(user_id: string) {
+  await sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`;
+
+  const tokens = await sql<RefreshToken[]>`
     SELECT *
     FROM refresh_tokens
-    WHERE token = ${refreshToken}
+    WHERE user_id = ${user_id}
   `;
 
-  return token || null;
+  return tokens;
 }
 
 export async function storeRefreshTokenModel(
@@ -140,9 +142,9 @@ export async function storeRefreshTokenModel(
   `;
 }
 
-export async function deleteRefreshTokenModel(refreshToken: string) {
+export async function deleteRefreshTokenByIdModel(id: number) {
   await sql`
     DELETE FROM refresh_tokens
-    WHERE token = ${refreshToken}
+    WHERE id = ${id}
   `;
 }

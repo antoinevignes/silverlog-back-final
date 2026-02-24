@@ -1,3 +1,14 @@
+import type { JwtPayload } from "jsonwebtoken";
+
+export interface UserPayload extends JwtPayload {
+  id: string;
+  username: string;
+  email: string;
+  role?: string;
+  top_list_id?: number;
+  watchlist_id?: number;
+}
+
 export interface User {
   id: string;
   username: string;
