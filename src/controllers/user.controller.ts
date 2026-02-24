@@ -52,8 +52,8 @@ export async function signUp(req: Request, res: Response) {
   if (exists.emailExists || exists.usernameExists)
     throw new Error("Email ou nom d'utilisateur déjà utilisé");
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const verificationToken = await bcrypt.hash(email, 10);
+  const hashedPassword = await bcrypt.hash(password, 14);
+  const verificationToken = await bcrypt.hash(email, 14);
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   await signUpModel({
