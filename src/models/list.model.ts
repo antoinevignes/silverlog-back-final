@@ -91,7 +91,7 @@ export async function toggleMovieInListModel(
 export async function getListMoviesModel(list_id: string) {
   return await sql<ListMovie[]>`
     SELECT 
-      lm.movie_id, 
+      lm.movie_id as id, 
       m.title,
       m.release_date,
       m.genres,
