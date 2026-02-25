@@ -87,10 +87,20 @@ export async function toggleMovieInListModel(
   });
 }
 
-// RECUPERER LES FILMS DE LA WATCHLIST
+// RECUPERER LES FILMS D'UNE LISTE
 export async function getListMoviesModel(list_id: string) {
   return await sql<ListMovie[]>`
-    SELECT movie_id, added_at, position FROM list_movies
+    SELECT 
+      lm.movie_id as id, 
+      m.title,
+      m.release_date,
+      m.genres,
+      m.poster_path,
+      m.backdrop_path,
+      lm.added_at,
+      lm.position 
+    FROM list_movies lm
+    LEFT JOIN movies m ON m.movie_id = lm.movie_id
     WHERE list_id = ${list_id}
     ORDER BY added_at DESC
     `;

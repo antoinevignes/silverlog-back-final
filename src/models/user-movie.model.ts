@@ -7,6 +7,7 @@ export interface MovieState {
   lists: { id: number; list_type: string; title: string }[];
 }
 
+// RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getStateModel(user_id: string, movie_id: string) {
   const rows = await sql<MovieState[]>`
     WITH base AS (
@@ -40,6 +41,7 @@ export async function getStateModel(user_id: string, movie_id: string) {
   return rows[0] || null;
 }
 
+// AJOUTER OU MODIFIER LA NOTE D'UN FILM
 export async function upsertRatingModel(
   user_id: string,
   movie_id: string,
@@ -70,6 +72,7 @@ export async function upsertRatingModel(
   return rows[0] || null;
 }
 
+// SUPPRIMER LA NOTE D'UN FILM
 export async function deleteRatingModel(user_id: string, movie_id: string) {
   await sql`
     UPDATE user_movies
@@ -79,6 +82,7 @@ export async function deleteRatingModel(user_id: string, movie_id: string) {
   `;
 }
 
+// MODIFIER LA DATE DE VISIONNAGE D'UN FILM
 export async function updateSeenDateModel(
   date: Date,
   user_id: string,
@@ -103,13 +107,21 @@ export async function updateSeenDateModel(
   `;
 }
 
+// RECUPERER LES FILMS VUS PAR L'UTILISATEUR
 export async function getSeenMoviesModel(user_id: string) {
   const rows = await sql<
     { movie_id: number; rating: number | null; seen_at: Date }[]
   >`
-    SELECT um.movie_id, um.rating, um.seen_at
+      SELECT 
+      um.movie_id as id, 
+      m.title,
+      m.release_date,
+      m.poster_path,
+      um.rating, 
+      um.seen_at
     FROM user_movies um 
-    WHERE um.user_id = ${user_id} 
+    LEFT JOIN movies m ON m.movie_id = um.movie_id
+    WHERE um.user_id = ${user_id}
     AND um.seen_at IS NOT NULL
   `;
 

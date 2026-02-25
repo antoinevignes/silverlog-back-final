@@ -6,6 +6,7 @@ import {
   updateSeenDateModel,
   upsertRatingModel,
 } from "../models/user-movie.model.js";
+import { upsertMovieModel } from "../models/movie.model.js";
 
 import z from "zod";
 
@@ -13,6 +14,16 @@ const movieParamSchema = z.object({
   movie_id: z.coerce.number(),
 });
 
+const seenMovieSchema = z.object({
+  date: z.any().optional(),
+  title: z.string(),
+  release_date: z.string().nullable(),
+  poster_path: z.string().nullable(),
+  backdrop_path: z.string().nullable(),
+  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
+});
+
+// RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
   const { movie_id } = movieParamSchema.parse(req.params);
 
@@ -31,6 +42,7 @@ export async function getState(req: Request, res: Response) {
   return res.status(200).json(state);
 }
 
+// AJOUTER OU MODIFIER LA NOTE D'UN FILM
 export async function upsertRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -48,6 +60,7 @@ export async function upsertRating(req: Request, res: Response) {
   });
 }
 
+// SUPPRIMER LA NOTE D'UN FILM
 export async function deleteRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -57,16 +70,30 @@ export async function deleteRating(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// MODIFIER LA DATE DE VISIONNAGE D'UN FILM
 export async function updateSeenDate(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
-  const { date } = req.body;
+  const { date, title, release_date, poster_path, backdrop_path, genres } =
+    seenMovieSchema.parse(req.body);
+
+  if (title && movie_id) {
+    await upsertMovieModel(
+      movie_id,
+      title,
+      release_date,
+      poster_path,
+      backdrop_path,
+      genres,
+    );
+  }
 
   await updateSeenDateModel(date, user_id, String(movie_id));
 
   return res.status(200).json({ success: true });
 }
 
+// RECUPERER LES FILMS VUS PAR L'UTILISATEUR
 export async function getSeenMovies(req: Request, res: Response) {
   const user_id = req.user!.id;
 
