@@ -8,6 +8,7 @@ import {
   toggleMovieInListModel,
 } from "../models/list.model.js";
 import z from "zod";
+import { upsertMovieModel } from "../models/movie.model.js";
 
 // TYPES
 const listSchema = z.object({
@@ -22,14 +23,40 @@ const listParamsSchema = z.object({
   list_id: z.coerce.number(),
 });
 
+const toggleMovieSchema = z.object({
+  movie_id: z.coerce.number(),
+  title: z.string(),
+  release_date: z.string().nullable(),
+  poster_path: z.string().nullable(),
+  backdrop_path: z.string().nullable(),
+  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
+});
+
 // AJOUTER FILM A UNE LISTE
 export async function toggleMovieInList(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { list_id } = listParamsSchema.parse(req.params);
-  const { movie_id } = req.body;
+  const { movie_id, title, release_date, poster_path, backdrop_path, genres } =
+    toggleMovieSchema.parse(req.body);
 
-  if (!movie_id) {
-    throw new Error("Paramètre movie_id manquant");
+  console.log({
+    movie_id,
+    title,
+    release_date,
+    poster_path,
+    backdrop_path,
+    genres,
+  });
+
+  if (title && movie_id) {
+    await upsertMovieModel(
+      movie_id,
+      title,
+      release_date,
+      poster_path,
+      backdrop_path,
+      genres,
+    );
   }
 
   const result = await toggleMovieInListModel(
