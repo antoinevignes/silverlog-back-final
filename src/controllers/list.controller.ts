@@ -39,15 +39,6 @@ export async function toggleMovieInList(req: Request, res: Response) {
   const { movie_id, title, release_date, poster_path, backdrop_path, genres } =
     toggleMovieSchema.parse(req.body);
 
-  console.log({
-    movie_id,
-    title,
-    release_date,
-    poster_path,
-    backdrop_path,
-    genres,
-  });
-
   if (title && movie_id) {
     await upsertMovieModel(
       movie_id,

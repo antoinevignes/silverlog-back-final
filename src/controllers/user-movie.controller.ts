@@ -13,6 +13,7 @@ const movieParamSchema = z.object({
   movie_id: z.coerce.number(),
 });
 
+// RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
   const { movie_id } = movieParamSchema.parse(req.params);
 
@@ -31,6 +32,7 @@ export async function getState(req: Request, res: Response) {
   return res.status(200).json(state);
 }
 
+// AJOUTER OU MODIFIER LA NOTE D'UN FILM
 export async function upsertRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -48,6 +50,7 @@ export async function upsertRating(req: Request, res: Response) {
   });
 }
 
+// SUPPRIMER LA NOTE D'UN FILM
 export async function deleteRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -57,6 +60,7 @@ export async function deleteRating(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// MODIFIER LA DATE DE VISIONNAGE D'UN FILM
 export async function updateSeenDate(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -67,6 +71,7 @@ export async function updateSeenDate(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// RECUPERER LES FILMS VUS PAR L'UTILISATEUR
 export async function getSeenMovies(req: Request, res: Response) {
   const user_id = req.user!.id;
 
