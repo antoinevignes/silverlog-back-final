@@ -83,27 +83,59 @@ export async function toggleMovieInListModel(
       VALUES (${list_id}, ${movie_id}, ${position})
     `;
 
+    await tx`
+      UPDATE lists 
+      SET updated_at = NOW() 
+      WHERE id = ${list_id}
+    `;
+
     return { action: "added", position };
   });
 }
 
 // RECUPERER LES FILMS D'UNE LISTE
-export async function getListMoviesModel(list_id: string) {
-  return await sql<ListMovie[]>`
-    SELECT 
-      lm.movie_id as id, 
-      m.title,
-      m.release_date,
-      m.genres,
-      m.poster_path,
-      m.backdrop_path,
-      lm.added_at,
-      lm.position 
-    FROM list_movies lm
-    LEFT JOIN movies m ON m.movie_id = lm.movie_id
-    WHERE list_id = ${list_id}
-    ORDER BY added_at DESC
+export async function getListDetailsModel(
+  list_id: string,
+  user_id: string | null,
+) {
+  const rows = await sql`
+      SELECT 
+        l.id, 
+        l.user_id, 
+        l.is_public, 
+        l.updated_at,
+        l.title,
+        l.description,
+        u.username,
+      COUNT(sl.*)::int as saved_count,
+        EXISTS (
+          SELECT 1 
+          FROM saved_lists sl 
+          WHERE sl.list_id = l.id AND sl.user_id = ${user_id}
+        ) AS is_saved,
+        (
+          SELECT COALESCE(jsonb_agg(jsonb_build_object(
+            'id', m.movie_id, 
+            'title', m.title,
+            'poster_path', m.poster_path,
+            'backdrop_path', m.backdrop_path,
+            'release_date', m.release_date,
+            'genres', m.genres,
+            'seen_at', um.seen_at
+          )), '[]') 
+          FROM list_movies lm
+          JOIN movies m ON m.movie_id = lm.movie_id
+          LEFT JOIN user_movies um ON um.movie_id = lm.movie_id AND um.user_id = ${user_id}
+          WHERE lm.list_id = l.id 
+        ) AS movies
+      FROM lists l
+      LEFT JOIN users u ON u.id = l.user_id
+      LEFT JOIN saved_lists sl ON sl.list_id = l.id
+      WHERE l.id = ${list_id}
+    GROUP BY l.id, u.username;
     `;
+
+  return rows[0];
 }
 
 // FAIRE UNE LISTE
@@ -137,6 +169,50 @@ export async function deleteListModel(list_id: number) {
         DELETE FROM lists
         WHERE id = ${list_id}
     `;
+}
+
+// RECUPERER LES LISTES PUBLIQUES
+export async function getPublicListsModel() {
+  return await sql<List[]>`
+    SELECT 
+      l.id,
+      l.title,
+      l.description,
+      u.username,
+      COUNT(sl.*)::int as saved_count,
+        (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+          'movie_id', lm.movie_id, 
+          'poster_path', m.poster_path)), 
+        '[]')
+          FROM list_movies lm
+          LEFT JOIN movies m ON m.movie_id = lm.movie_id
+          WHERE lm.list_id = l.id
+        ) AS movies
+    FROM lists l
+    LEFT JOIN users u ON l.user_id = u.id
+    LEFT JOIN saved_lists sl ON sl.list_id = l.id
+    WHERE l.is_public = true
+    GROUP BY l.id, u.username
+  `;
+}
+
+export async function toggleSaveListModel(user_id: string, list_id: number) {
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    const exists = await tx`
+      SELECT 1 FROM saved_lists 
+      WHERE user_id = ${user_id} AND list_id = ${list_id}
+    `;
+
+    if (exists.length > 0) {
+      await tx`DELETE FROM saved_lists WHERE user_id = ${user_id} AND list_id = ${list_id}`;
+      return { action: "un-saved" };
+    } else {
+      await tx`INSERT INTO saved_lists (user_id, list_id) VALUES (${user_id}, ${list_id})`;
+      return { action: "saved" };
+    }
+  });
 }
 
 //////// HELPERS //////////
