@@ -3,9 +3,11 @@ import {
   createListModel,
   deleteListModel,
   findListById,
-  getListMoviesModel,
+  getListDetailsModel,
   getListsModel,
+  getPublicListsModel,
   toggleMovieInListModel,
+  toggleSaveListModel,
 } from "../models/list.model.js";
 import z from "zod";
 import { upsertMovieModel } from "../models/movie.model.js";
@@ -62,11 +64,12 @@ export async function toggleMovieInList(req: Request, res: Response) {
   });
 }
 
-// RECUPERER FILMS D'UNE LISTE
-export async function getListMovies(req: Request, res: Response) {
+// RECUPERER DETAILS D'UNE LISTE
+export async function getListDetails(req: Request, res: Response) {
+  const user_id = req.user?.id || null;
   const { list_id } = listParamsSchema.parse(req.params);
 
-  const watchlist = await getListMoviesModel(String(list_id));
+  const watchlist = await getListDetailsModel(String(list_id), user_id);
 
   return res.status(200).json(watchlist);
 }
@@ -107,4 +110,24 @@ export async function deleteList(req: Request, res: Response) {
   await deleteListModel(Number(list_id));
 
   return res.status(200).json({ success: "Liste supprimée" });
+}
+
+// RECUPERER LES LISTES PUBLIQUES
+export async function getPublicLists(req: Request, res: Response) {
+  const lists = await getPublicListsModel();
+
+  return res.status(200).json(lists);
+}
+
+// TOGGLE SAUVEGARDER UNE LISTE
+export async function toggleSaveList(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { list_id } = listParamsSchema.parse(req.params);
+
+  const result = await toggleSaveListModel(user_id, Number(list_id));
+
+  return res.status(200).json({
+    success: true,
+    action: result.action,
+  });
 }
