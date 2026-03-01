@@ -186,8 +186,10 @@ top_movies_list AS (
         jsonb_agg(jsonb_build_object(
             'id', m.movie_id, 
             'title', m.title,
-            'poster_path', m.poster_path
-        )) as top_json
+            'poster_path', m.poster_path,
+            'position', lm.position
+        )
+        ORDER BY lm.position ASC) as top_json
     FROM lists l
     JOIN list_movies lm ON lm.list_id = l.id
     JOIN movies m ON m.movie_id = lm.movie_id
@@ -202,15 +204,20 @@ recent_activity AS (
             'title', m.title,
             'poster_path', m.poster_path,
             'rating', act.rating,
-            'review_content', act.content
-        )) as activity_json
+            'review_content', act.content,
+            'rated_at', act.rated_at 
+        ) ORDER BY act.rated_at DESC) as activity_json 
     FROM (
-        SELECT um.movie_id, um.rating, r.content
+        SELECT 
+            um.movie_id, 
+            um.rating, 
+            um.rated_at,
+            r.content
         FROM user_movies um
         LEFT JOIN reviews r ON r.movie_id = um.movie_id AND r.user_id = um.user_id
         WHERE um.user_id = ${user_id} AND um.rating IS NOT NULL
         ORDER BY um.rated_at DESC
-        LIMIT 8
+        LIMIT 16
     ) act
     JOIN movies m ON m.movie_id = act.movie_id
 )
