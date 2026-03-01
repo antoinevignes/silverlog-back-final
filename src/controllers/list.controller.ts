@@ -6,6 +6,7 @@ import {
   getListDetailsModel,
   getListsModel,
   getPublicListsModel,
+  getUserCustomListsModel,
   toggleMovieInListModel,
   toggleSaveListModel,
 } from "../models/list.model.js";
@@ -115,6 +116,22 @@ export async function deleteList(req: Request, res: Response) {
 // RECUPERER LES LISTES PUBLIQUES
 export async function getPublicLists(req: Request, res: Response) {
   const lists = await getPublicListsModel();
+
+  return res.status(200).json(lists);
+}
+
+// RECUPERER LES LISTES PERSO
+export async function getUserCustomLists(req: Request, res: Response) {
+  const { user_id } = req.params;
+
+  const { is_public } = req.query;
+
+  if (!user_id) throw new Error("Utilisateur introuvable");
+
+  const lists = await getUserCustomListsModel(
+    String(user_id),
+    is_public === "true",
+  );
 
   return res.status(200).json(lists);
 }

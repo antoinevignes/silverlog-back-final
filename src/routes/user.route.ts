@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getUser,
   signIn,
   signOut,
   signUp,
@@ -32,5 +33,7 @@ userRoute.post("/sign-up", signUp);
 userRoute.get("/verify-email", verifyEmail);
 userRoute.post("/sign-in", signIn);
 userRoute.post("/sign-out", signOut);
+
+userRoute.get("/:user_id", getUser);
 
 export default userRoute;

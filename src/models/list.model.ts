@@ -196,6 +196,36 @@ export async function getPublicListsModel() {
   `;
 }
 
+// RECUPERER LES LISTES PERSO
+export async function getUserCustomListsModel(
+  user_id: string,
+  is_public: boolean,
+) {
+  return await sql<List[]>`
+    SELECT 
+      l.id,
+      l.title,
+      l.description,
+      u.username,
+      COUNT(sl.*)::int as saved_count,
+        (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+          'movie_id', lm.movie_id, 
+          'poster_path', m.poster_path)), 
+        '[]')
+          FROM list_movies lm
+          LEFT JOIN movies m ON m.movie_id = lm.movie_id
+          WHERE lm.list_id = l.id
+        ) AS movies
+    FROM lists l
+    LEFT JOIN users u ON l.user_id = u.id
+    LEFT JOIN saved_lists sl ON sl.list_id = l.id
+    WHERE l.list_type = 'custom' AND l.user_id = ${user_id}
+    ${is_public ? sql`AND l.is_public = true` : sql``}
+    GROUP BY l.id, u.username
+  `;
+}
+
+// TOGGLE SAUVEGARDE LISTE
 export async function toggleSaveListModel(user_id: string, list_id: number) {
   return await sql.begin(async (t) => {
     const tx = t as unknown as typeof sql;

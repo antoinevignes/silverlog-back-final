@@ -9,6 +9,7 @@ import {
   storeRefreshTokenModel,
   verifyEmailModel,
   getUserRefreshTokensModel,
+  getUserModel,
 } from "../models/user.model.js";
 import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
@@ -213,4 +214,17 @@ export async function signOut(req: Request, res: Response) {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
   });
   return res.status(200).json({ success: true });
+}
+
+// RECUPERER LES INFOS DE L'UTILISATEUR
+export async function getUser(req: Request, res: Response) {
+  const { user_id } = req.params;
+
+  if (!user_id) throw new Error("Utilisateur introuvable");
+
+  const user = await getUserModel(String(user_id));
+
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  return res.status(200).json(user);
 }

@@ -6,6 +6,7 @@ import {
   getListDetails,
   getLists,
   getPublicLists,
+  getUserCustomLists,
   toggleMovieInList,
   toggleSaveList,
 } from "../controllers/list.controller.js";
@@ -13,10 +14,11 @@ import {
 const listRoute = Router();
 
 listRoute.get("/", optionalAuth, getLists);
+listRoute.post("/", requireAuth, createList);
 listRoute.get("/public", optionalAuth, getPublicLists);
 listRoute.get("/:list_id", optionalAuth, getListDetails);
+listRoute.get("/user/:user_id", optionalAuth, getUserCustomLists);
 listRoute.post("/:list_id/toggle", requireAuth, toggleSaveList);
-listRoute.post("/", requireAuth, createList);
 listRoute.delete("/:list_id", requireAuth, deleteList);
 listRoute.post("/:list_id/movies/toggle", requireAuth, toggleMovieInList);
 
