@@ -4,6 +4,7 @@ import type { User, RefreshToken, List } from "../types/db.js";
 interface SignInUser extends User {
   watchlist_id: number | null;
   top_list_id: number | null;
+  avatar_path: string | null;
 }
 
 // CREER UTILISATEUR
@@ -107,6 +108,7 @@ export async function signInModel(email: string) {
       u.username,
       u.password,
       u.verified,
+      u.avatar_path,
 
       MAX(CASE WHEN l.list_type = 'watchlist' THEN l.id END) AS watchlist_id,
       MAX(CASE WHEN l.list_type = 'top' THEN l.id END) AS top_list_id
@@ -150,6 +152,37 @@ export async function deleteRefreshTokenByIdModel(id: number) {
   await sql`
     DELETE FROM refresh_tokens
     WHERE id = ${id}
+  `;
+}
+
+// MODIFIER LE NOM D'UTILISATEUR
+export async function updateUsernameModel(user_id: string, username: string) {
+  await sql`
+    UPDATE users SET username = ${username} WHERE id = ${user_id}
+  `;
+}
+
+// MODIFIER LA LOCALISATION
+export async function updateLocationModel(user_id: string, location: string) {
+  await sql`
+    UPDATE users SET location = ${location} WHERE id = ${user_id}
+  `;
+}
+
+// MODIFIER L'AVATAR
+export async function updateAvatarPathModel(
+  user_id: string,
+  avatar_path: string,
+) {
+  await sql`
+    UPDATE users SET avatar_path = ${avatar_path} WHERE id = ${user_id}
+  `;
+}
+
+// SUPPRIMER LE COMPTE UTILISATEUR
+export async function deleteUserModel(user_id: string) {
+  await sql`
+    DELETE FROM users WHERE id = ${user_id}
   `;
 }
 
@@ -228,6 +261,7 @@ SELECT
     u.role,
     u.description,
     u.location,
+    u.avatar_path,
     COALESCE(us.viewed_movies, 0) as viewed_movies_count,
     COALESCE(us.viewed_movies_this_year, 0) as viewed_movies_this_year_count,
     COALESCE(us.avg_rating, 0) as avg_rating,

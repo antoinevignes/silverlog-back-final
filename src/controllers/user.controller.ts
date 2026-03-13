@@ -10,6 +10,10 @@ import {
   verifyEmailModel,
   getUserRefreshTokensModel,
   getUserModel,
+  updateUsernameModel,
+  updateLocationModel,
+  updateAvatarPathModel,
+  deleteUserModel,
 } from "../models/user.model.js";
 import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
@@ -142,6 +146,7 @@ export async function signIn(req: Request, res: Response) {
       email: user.email,
       top_list_id: user.top_list_id,
       watchlist_id: user.watchlist_id,
+      avatar_path: user.avatar_path,
     },
     process.env.ACCESS_SECRET!,
     { expiresIn: "15m" },
@@ -154,6 +159,7 @@ export async function signIn(req: Request, res: Response) {
       email: user.email,
       top_list_id: user.top_list_id,
       watchlist_id: user.watchlist_id,
+      avatar_path: user.avatar_path,
     },
     process.env.REFRESH_SECRET!,
     { expiresIn: "7d" },
@@ -183,6 +189,7 @@ export async function signIn(req: Request, res: Response) {
     email: user.email,
     top_list_id: user.top_list_id,
     watchlist_id: user.watchlist_id,
+    avatar_path: user.avatar_path,
   });
 }
 
@@ -227,4 +234,106 @@ export async function getUser(req: Request, res: Response) {
   if (!user) throw new Error("Utilisateur introuvable");
 
   return res.status(200).json(user);
+}
+
+// MODIFIER LE NOM D'UTILISATEUR
+export async function updateUsername(req: Request, res: Response) {
+  const user = req.user!;
+  const { username } = z
+    .object({ username: z.string().trim().min(1) })
+    .parse(req.body);
+
+  const exists = await checkUserExists("", username);
+  if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
+
+  await updateUsernameModel(user.id, username);
+
+  const payload = {
+    id: user.id,
+    username,
+    email: user.email,
+    top_list_id: user.top_list_id,
+    watchlist_id: user.watchlist_id,
+  };
+
+  const newAccessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
+    expiresIn: "15m",
+  });
+  const newRefreshToken = jwt.sign(payload, process.env.REFRESH_SECRET!, {
+    expiresIn: "7d",
+  });
+
+  const oldRefreshToken = req.cookies.refreshToken;
+  if (oldRefreshToken) {
+    const dbTokens = await getUserRefreshTokensModel(user.id);
+    for (const t of dbTokens) {
+      if (await bcrypt.compare(oldRefreshToken, t.token)) {
+        await deleteRefreshTokenByIdModel(t.id);
+        break;
+      }
+    }
+  }
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 14);
+  await storeRefreshTokenModel(user.id, hashedNewRefreshToken, expiresAt);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  } as const;
+
+  res.cookie("accessToken", newAccessToken, cookieOptions);
+  res.cookie("refreshToken", newRefreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return res.status(200).json({ success: true, username });
+}
+
+// MODIFIER LA LOCALISATION
+export async function updateLocation(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { location } = z
+    .object({ location: z.string().trim() })
+    .parse(req.body);
+
+  await updateLocationModel(user_id, location);
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER L'AVATAR
+export async function updateAvatar(req: Request, res: Response) {
+  const user_id = req.user!.id;
+
+  if (!req.file) throw new Error("Aucun fichier reçu");
+
+  const file = req.file as any;
+  const publicId: string = file.filename || file.public_id;
+  const avatar_path = publicId.split("/").pop()!;
+
+  await updateAvatarPathModel(user_id, avatar_path);
+
+  return res.status(200).json({ success: true, avatar_path });
+}
+
+// SUPPRIMER LE COMPTE UTILISATEUR
+export async function deleteAccount(req: Request, res: Response) {
+  const user_id = req.user!.id;
+
+  await deleteUserModel(user_id);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  } as const;
+
+  res.clearCookie("accessToken", cookieOptions);
+  res.clearCookie("refreshToken", cookieOptions);
+
+  return res.status(200).json({ success: true, message: "Compte supprimé avec succès" });
 }
