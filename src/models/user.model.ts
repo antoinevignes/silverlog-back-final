@@ -172,10 +172,20 @@ export async function updateLocationModel(user_id: string, location: string) {
 // MODIFIER L'AVATAR
 export async function updateAvatarPathModel(
   user_id: string,
-  avatar_path: string,
+  avatar_path: string | null,
 ) {
   await sql`
     UPDATE users SET avatar_path = ${avatar_path} WHERE id = ${user_id}
+  `;
+}
+
+// MODIFIER LE BANNER
+export async function updateBannerPathModel(
+  user_id: string,
+  banner_path: string | null,
+) {
+  await sql`
+    UPDATE users SET banner_path = ${banner_path} WHERE id = ${user_id}
   `;
 }
 
@@ -262,6 +272,7 @@ SELECT
     u.description,
     u.location,
     u.avatar_path,
+    u.banner_path,
     COALESCE(us.viewed_movies, 0) as viewed_movies_count,
     COALESCE(us.viewed_movies_this_year, 0) as viewed_movies_this_year_count,
     COALESCE(us.avg_rating, 0) as avg_rating,

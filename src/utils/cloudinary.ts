@@ -26,3 +26,35 @@ export const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 });
+
+export const deleteAvatarFromCloudinary = async (filename: string) => {
+  try {
+    const fullPublicId = `silverlog/avatars/${filename}`;
+    await cloudinary.uploader.destroy(fullPublicId);
+  } catch (error) {
+    console.error("Erreur à la suppression de l'avatar:", error);
+  }
+};
+
+const storageBanner = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "silverlog/banners",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 1200, height: 675, crop: "fill" }],
+  } as any,
+});
+
+export const uploadBanner = multer({
+  storage: storageBanner,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+});
+
+export const deleteBannerFromCloudinary = async (filename: string) => {
+  try {
+    const fullPublicId = `silverlog/banners/${filename}`;
+    await cloudinary.uploader.destroy(fullPublicId);
+  } catch (error) {
+    console.error("Erreur à la suppression du banner:", error);
+  }
+};
