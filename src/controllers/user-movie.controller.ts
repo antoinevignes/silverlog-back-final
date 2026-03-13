@@ -23,6 +23,15 @@ const seenMovieSchema = z.object({
   genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
 });
 
+const ratingMovieSchema = z.object({
+  rating: z.number(),
+  title: z.string(),
+  release_date: z.string().nullable(),
+  poster_path: z.string().nullable(),
+  backdrop_path: z.string().nullable(),
+  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
+});
+
 // RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
   const { movie_id } = movieParamSchema.parse(req.params);
@@ -46,11 +55,17 @@ export async function getState(req: Request, res: Response) {
 export async function upsertRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
-  const { rating } = req.body;
+  const { rating, title, release_date, poster_path, backdrop_path, genres } =
+    ratingMovieSchema.parse(req.body);
 
-  if (!movie_id || !rating || rating === null) {
-    return res.status(400).json({ error: "Paramètres manquants" });
-  }
+  await upsertMovieModel(
+    movie_id,
+    title,
+    release_date,
+    poster_path,
+    backdrop_path,
+    genres,
+  );
 
   const state = await upsertRatingModel(user_id, String(movie_id), rating);
 

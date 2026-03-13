@@ -9,6 +9,12 @@ import {
   storeRefreshTokenModel,
   verifyEmailModel,
   getUserRefreshTokensModel,
+  getUserModel,
+  updateUsernameModel,
+  updateLocationModel,
+  updateAvatarPathModel,
+  deleteUserModel,
+  updateBannerPathModel,
 } from "../models/user.model.js";
 import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
@@ -16,6 +22,10 @@ import { Resend } from "resend";
 import generateEmail from "../utils/generate-email.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import {
+  deleteAvatarFromCloudinary,
+  deleteBannerFromCloudinary,
+} from "../utils/cloudinary.js";
 
 dotenv.config();
 
@@ -141,6 +151,7 @@ export async function signIn(req: Request, res: Response) {
       email: user.email,
       top_list_id: user.top_list_id,
       watchlist_id: user.watchlist_id,
+      avatar_path: user.avatar_path,
     },
     process.env.ACCESS_SECRET!,
     { expiresIn: "15m" },
@@ -153,6 +164,7 @@ export async function signIn(req: Request, res: Response) {
       email: user.email,
       top_list_id: user.top_list_id,
       watchlist_id: user.watchlist_id,
+      avatar_path: user.avatar_path,
     },
     process.env.REFRESH_SECRET!,
     { expiresIn: "7d" },
@@ -182,6 +194,7 @@ export async function signIn(req: Request, res: Response) {
     email: user.email,
     top_list_id: user.top_list_id,
     watchlist_id: user.watchlist_id,
+    avatar_path: user.avatar_path,
   });
 }
 
@@ -213,4 +226,182 @@ export async function signOut(req: Request, res: Response) {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
   });
   return res.status(200).json({ success: true });
+}
+
+// RECUPERER LES INFOS DE L'UTILISATEUR
+export async function getUser(req: Request, res: Response) {
+  const { user_id } = req.params;
+
+  if (!user_id) throw new Error("Utilisateur introuvable");
+
+  const user = await getUserModel(String(user_id));
+
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  return res.status(200).json(user);
+}
+
+// MODIFIER LE NOM D'UTILISATEUR
+export async function updateUsername(req: Request, res: Response) {
+  const user = req.user!;
+  const { username } = z
+    .object({ username: z.string().trim().min(1) })
+    .parse(req.body);
+
+  const exists = await checkUserExists("", username);
+  if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
+
+  await updateUsernameModel(user.id, username);
+  await regenerateTokensAndSetCookies(req, res, user, { username });
+
+  return res.status(200).json({ success: true, username });
+}
+
+// MODIFIER LA LOCALISATION
+export async function updateLocation(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { location } = z
+    .object({ location: z.string().trim() })
+    .parse(req.body);
+
+  await updateLocationModel(user_id, location);
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER L'AVATAR
+export async function updateAvatar(req: Request, res: Response) {
+  const user = req.user!;
+
+  if (!req.file) throw new Error("Aucun fichier reçu");
+
+  const file = req.file as any;
+  const publicId: string = file.filename || file.public_id;
+  const avatar_path = publicId.split("/").pop()!;
+
+  await updateAvatarPathModel(user.id, avatar_path);
+  await regenerateTokensAndSetCookies(req, res, user, { avatar_path });
+
+  return res.status(200).json({ success: true, avatar_path });
+}
+
+// SUPPRIMER L'AVATAR
+export async function deleteAvatar(req: Request, res: Response) {
+  const user = req.user!;
+
+  const dbUser = await getUserModel(user.id);
+
+  if (dbUser?.avatar_path) {
+    await deleteAvatarFromCloudinary(dbUser.avatar_path);
+  }
+
+  await updateAvatarPathModel(user.id, null);
+  await regenerateTokensAndSetCookies(req, res, user, { avatar_path: null });
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER LE BANNER
+export async function updateBanner(req: Request, res: Response) {
+  const user = req.user!;
+
+  if (!req.file) throw new Error("Aucun fichier reçu");
+
+  const file = req.file as any;
+  const publicId: string = file.filename || file.public_id;
+  const banner_path = publicId.split("/").pop()!;
+
+  await updateBannerPathModel(user.id, banner_path);
+  await regenerateTokensAndSetCookies(req, res, user, { banner_path });
+
+  return res.status(200).json({ success: true, banner_path });
+}
+
+// SUPPRIMER LE BANNER
+export async function deleteBanner(req: Request, res: Response) {
+  const user = req.user!;
+
+  const dbUser = await getUserModel(user.id);
+
+  if (dbUser?.banner_path) {
+    await deleteBannerFromCloudinary(dbUser.banner_path);
+  }
+
+  await updateBannerPathModel(user.id, null);
+  await regenerateTokensAndSetCookies(req, res, user, { banner_path: null });
+
+  return res.status(200).json({ success: true });
+}
+
+// SUPPRIMER LE COMPTE UTILISATEUR
+export async function deleteAccount(req: Request, res: Response) {
+  const user_id = req.user!.id;
+
+  await deleteUserModel(user_id);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  } as const;
+
+  res.clearCookie("accessToken", cookieOptions);
+  res.clearCookie("refreshToken", cookieOptions);
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Compte supprimé avec succès" });
+}
+
+// HELPER LOCAL POUR REGENERER LES TOKENS
+async function regenerateTokensAndSetCookies(
+  req: Request,
+  res: Response,
+  user: any,
+  overrides: any,
+) {
+  const payload = {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    top_list_id: user.top_list_id,
+    watchlist_id: user.watchlist_id,
+    avatar_path: user.avatar_path,
+    backdrop_path: user.backdrop_path,
+    ...overrides,
+  };
+
+  const newAccessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
+    expiresIn: "15m",
+  });
+  const newRefreshToken = jwt.sign(payload, process.env.REFRESH_SECRET!, {
+    expiresIn: "7d",
+  });
+
+  const oldRefreshToken = req.cookies.refreshToken;
+  if (oldRefreshToken) {
+    const dbTokens = await getUserRefreshTokensModel(user.id);
+    for (const t of dbTokens) {
+      if (await bcrypt.compare(oldRefreshToken, t.token)) {
+        await deleteRefreshTokenByIdModel(t.id);
+        break;
+      }
+    }
+  }
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 14);
+  await storeRefreshTokenModel(user.id, hashedNewRefreshToken, expiresAt);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  } as const;
+
+  res.cookie("accessToken", newAccessToken, cookieOptions);
+  res.cookie("refreshToken", newRefreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
