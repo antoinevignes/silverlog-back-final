@@ -13,8 +13,8 @@ const router = Router();
 
 router.use("/movies", movieRoute);
 router.use("/auth", authRoute);
-router.use("/user", userRoute);
 router.use("/user", followRoute);
+router.use("/user", userRoute);
 router.use("/tmdb", tmdbRoute);
 router.use("/user_movie", userMovieRoute);
 router.use("/reviews", reviewRoute);

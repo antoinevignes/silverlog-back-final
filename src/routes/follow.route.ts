@@ -5,9 +5,12 @@ import {
   unfollowUser,
   getFollowers,
   getFollowing,
+  getFollowingActivity,
 } from "../controllers/follow.controller.js";
 
 const followRoute = Router();
+
+followRoute.get("/feed", requireAuth, getFollowingActivity);
 
 followRoute.post("/:id/follow", requireAuth, followUser);
 followRoute.delete("/:id/follow", requireAuth, unfollowUser);
