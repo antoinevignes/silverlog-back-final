@@ -1,6 +1,7 @@
 import { Router } from "express";
 import userRoute from "./user.route.js";
 import authRoute from "./auth.route.js";
+import followRoute from "./follow.route.js";
 import tmdbRoute from "./tmdb.route.js";
 import movieRoute from "./movie.route.js";
 import userMovieRoute from "./user-movie.route.js";
@@ -13,6 +14,7 @@ const router = Router();
 router.use("/movies", movieRoute);
 router.use("/auth", authRoute);
 router.use("/user", userRoute);
+router.use("/user", followRoute);
 router.use("/tmdb", tmdbRoute);
 router.use("/user_movie", userMovieRoute);
 router.use("/reviews", reviewRoute);
