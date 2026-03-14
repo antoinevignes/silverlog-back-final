@@ -91,3 +91,32 @@ export async function deleteReviewModel(review_id: string, user_id: string) {
     AND user_id = ${user_id};
   `;
 }
+
+export async function getRecentReviewsModel() {
+  const rows = await sql<ReviewWithDetails[]>`
+    SELECT 
+      r.*,
+      u.username,
+      u.avatar_path,
+      m.title as movie_title,
+      m.poster_path as movie_poster_path,
+      um.rating,
+      COUNT(l.*)::int as like_count
+    FROM reviews r
+    JOIN users u ON u.id = r.user_id
+    JOIN movies m ON m.movie_id = r.movie_id
+    LEFT JOIN user_movies um ON um.user_id = r.user_id AND um.movie_id = r.movie_id
+    LEFT JOIN review_likes l ON r.id = l.review_id
+    GROUP BY 
+      r.id, 
+      u.username, 
+      u.avatar_path,
+      m.title,
+      m.poster_path,
+      um.rating
+    ORDER BY r.created_at DESC
+    LIMIT 2;
+  `;
+
+  return rows;
+}

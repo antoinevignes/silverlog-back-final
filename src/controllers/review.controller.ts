@@ -6,6 +6,7 @@ import {
   getReviewModel,
   getReviewsModel,
   likeReviewModel,
+  getRecentReviewsModel,
 } from "../models/review.model.js";
 
 const reviewSchema = z.object({
@@ -85,4 +86,9 @@ export async function deleteReview(req: Request, res: Response) {
   await deleteReviewModel(String(review_id), user_id);
 
   return res.status(200).json({ success: true });
+}
+
+export async function getRecentReviews(req: Request, res: Response) {
+  const reviews = await getRecentReviewsModel();
+  return res.status(200).json(reviews);
 }

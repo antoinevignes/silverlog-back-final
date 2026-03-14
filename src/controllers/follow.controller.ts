@@ -4,6 +4,7 @@ import {
   unfollowUserModel,
   getFollowersModel,
   getFollowingModel,
+  getFollowingActivityModel,
 } from "../models/follow.model.js";
 
 // SUIVRE UN UTILISATEUR
@@ -40,4 +41,11 @@ export async function getFollowing(req: Request, res: Response) {
   const id = String(req.params.id);
   const following = await getFollowingModel(id);
   return res.status(200).json(following);
+}
+
+// RECUPERER LE FLUX D'ACTIVITE DES ABONNEMENTS
+export async function getFollowingActivity(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const activity = await getFollowingActivityModel(user_id);
+  return res.status(200).json(activity);
 }

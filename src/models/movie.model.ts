@@ -37,3 +37,19 @@ export async function getMovieDataModel(movie_id: string) {
 
   return rows[0] || null;
 }
+
+export async function getCrewPicksModel() {
+  const rows = await sql`
+    SELECT 
+      cp.movie_id as id,
+      m.title,
+      m.poster_path,
+      cp.added_at
+    FROM crew_picks cp
+    JOIN movies m ON cp.movie_id = m.movie_id
+    JOIN users u ON u.id = cp.added_by
+    ORDER BY cp.added_at DESC
+  `;
+
+  return rows;
+}
