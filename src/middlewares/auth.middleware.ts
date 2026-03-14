@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { getUserRefreshTokensModel } from "../models/user.model.js";
+import { getUserRefreshTokensModel } from "../models/auth.model.js";
 import type { UserPayload } from "../types/db.js";
 import bcrypt from "bcryptjs";
 

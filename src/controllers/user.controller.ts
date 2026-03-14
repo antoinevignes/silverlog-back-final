@@ -1,240 +1,27 @@
 import z from "zod";
-import bcrypt from "bcryptjs";
+import type { Request, Response } from "express";
 import {
-  checkUserExists,
-  checkUserVerification,
-  deleteRefreshTokenByIdModel,
-  signInModel,
-  signUpModel,
-  storeRefreshTokenModel,
-  verifyEmailModel,
-  getUserRefreshTokensModel,
   getUserModel,
   updateUsernameModel,
   updateLocationModel,
   updateAvatarPathModel,
-  deleteUserModel,
   updateBannerPathModel,
+  deleteUserModel,
 } from "../models/user.model.js";
-import type { UserPayload } from "../types/db.js";
-import type { Request, Response } from "express";
-import { Resend } from "resend";
-import generateEmail from "../utils/generate-email.js";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import {
   deleteAvatarFromCloudinary,
   deleteBannerFromCloudinary,
 } from "../utils/cloudinary.js";
-
-dotenv.config();
-
-const tokenSchema = z.string().trim();
-
-const registerSchema = z.object({
-  username: z.string().trim().min(1, "Nom d'utilisateur requis"),
-  email: z.email("Email requis"),
-  password: z
-    .string()
-    .trim()
-    .min(12, "Mot de passe trop court")
-    .max(128, "Mot de passe trop long")
-    .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
-    .regex(/[a-z]/, "Doit contenir au moins une minuscule")
-    .regex(/\d/, "Doit contenir au moins un chiffre")
-    .regex(
-      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/,
-      "Doit contenir un caractère spécial",
-    )
-    .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
-});
-
-const loginSchema = z.object({
-  email: z.email("Email requis"),
-  password: z.string().trim().min(1, "Mot de passe requis"),
-});
-
-// REGISTER
-export async function signUp(req: Request, res: Response) {
-  const parsed = registerSchema.parse(req.body);
-
-  const { username, email, password } = parsed;
-
-  const exists = await checkUserExists(email, username);
-  if (exists.emailExists || exists.usernameExists)
-    throw new Error("Email ou nom d'utilisateur déjà utilisé");
-
-  const hashedPassword = await bcrypt.hash(password, 14);
-  const verificationToken = await bcrypt.hash(email, 14);
-  const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  await signUpModel({
-    username,
-    email,
-    hashedPassword,
-    role: "user",
-    verificationToken,
-    tokenExpiresAt,
-  });
-
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
-    from: "Silverlog <onboarding@resend.dev>",
-    to: [email],
-    subject: "Silverlog - Activer votre compte",
-    html: generateEmail(verificationToken),
-  });
-
-  return res.status(201).json({
-    success:
-      "Utilisateur créé avec succès. Un lien de verification vous a été envoyé par email.",
-  });
-}
-
-// VERIFIER EMAIL
-export async function verifyEmail(req: Request, res: Response) {
-  const parsed = tokenSchema.safeParse(req.query.token);
-  if (!parsed.success) {
-    return res.status(400).json({
-      success: false,
-      message: "Token manquant",
-    });
-  }
-
-  const token = parsed.data;
-
-  const user = await checkUserVerification(token);
-
-  if (!user) {
-    return res.status(400).json({ success: false, message: "Token invalide" });
-  }
-
-  if (user.verified) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Email déjà vérifié" });
-  }
-
-  if (!user.token_expires_at || new Date(user.token_expires_at) < new Date()) {
-    return res.status(400).json({ success: false, message: "Token expiré" });
-  }
-
-  await verifyEmailModel(user.id);
-
-  return res
-    .status(200)
-    .json({ success: true, message: "Email vérifié avec succès !" });
-}
-
-// LOGIN
-export async function signIn(req: Request, res: Response) {
-  const parsed = loginSchema.parse(req.body);
-  const { email, password } = parsed;
-
-  const user = await signInModel(email);
-  if (!user) throw new Error("Email ou mot de passe invalide");
-
-  if (!user.password) throw new Error("Email ou mot de passe invalide");
-
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if (!passwordMatch) throw new Error("Email ou mot de passe invalide");
-
-  if (!user.verified)
-    throw new Error(
-      "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
-    );
-
-  const accessToken = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      top_list_id: user.top_list_id,
-      watchlist_id: user.watchlist_id,
-      avatar_path: user.avatar_path,
-    },
-    process.env.ACCESS_SECRET!,
-    { expiresIn: "15m" },
-  );
-
-  const refreshToken = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      top_list_id: user.top_list_id,
-      watchlist_id: user.watchlist_id,
-      avatar_path: user.avatar_path,
-    },
-    process.env.REFRESH_SECRET!,
-    { expiresIn: "7d" },
-  );
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  const hashedRefreshToken = await bcrypt.hash(refreshToken, 14);
-  await storeRefreshTokenModel(user.id, hashedRefreshToken, expiresAt);
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  return res.status(200).json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    top_list_id: user.top_list_id,
-    watchlist_id: user.watchlist_id,
-    avatar_path: user.avatar_path,
-  });
-}
-
-// SIGNOUT
-export async function signOut(req: Request, res: Response) {
-  const refreshToken = req.cookies.refreshToken;
-
-  if (refreshToken) {
-    const decoded = jwt.decode(refreshToken) as UserPayload | null;
-    if (decoded && decoded.id) {
-      const dbTokens = await getUserRefreshTokensModel(decoded.id);
-      for (const t of dbTokens) {
-        if (await bcrypt.compare(refreshToken, t.token)) {
-          await deleteRefreshTokenByIdModel(t.id);
-          break;
-        }
-      }
-    }
-  }
-
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
-  return res.status(200).json({ success: true });
-}
+import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 
 // RECUPERER LES INFOS DE L'UTILISATEUR
 export async function getUser(req: Request, res: Response) {
   const { user_id } = req.params;
+  const current_user_id = req.user?.id;
 
   if (!user_id) throw new Error("Utilisateur introuvable");
 
-  const user = await getUserModel(String(user_id));
+  const user = await getUserModel(String(user_id), current_user_id);
 
   if (!user) throw new Error("Utilisateur introuvable");
 
@@ -247,6 +34,10 @@ export async function updateUsername(req: Request, res: Response) {
   const { username } = z
     .object({ username: z.string().trim().min(1) })
     .parse(req.body);
+
+  // We need to check if username exists. Let's assume we import a checkUserExists function from auth module or something.
+  // Oh wait, checkUserExists is in auth.model.ts now. I need to import it!
+  const { checkUserExists } = await import("../models/auth.model.js");
 
   const exists = await checkUserExists("", username);
   if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
@@ -351,57 +142,4 @@ export async function deleteAccount(req: Request, res: Response) {
   return res
     .status(200)
     .json({ success: true, message: "Compte supprimé avec succès" });
-}
-
-// HELPER LOCAL POUR REGENERER LES TOKENS
-async function regenerateTokensAndSetCookies(
-  req: Request,
-  res: Response,
-  user: any,
-  overrides: any,
-) {
-  const payload = {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    top_list_id: user.top_list_id,
-    watchlist_id: user.watchlist_id,
-    avatar_path: user.avatar_path,
-    backdrop_path: user.backdrop_path,
-    ...overrides,
-  };
-
-  const newAccessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
-    expiresIn: "15m",
-  });
-  const newRefreshToken = jwt.sign(payload, process.env.REFRESH_SECRET!, {
-    expiresIn: "7d",
-  });
-
-  const oldRefreshToken = req.cookies.refreshToken;
-  if (oldRefreshToken) {
-    const dbTokens = await getUserRefreshTokensModel(user.id);
-    for (const t of dbTokens) {
-      if (await bcrypt.compare(oldRefreshToken, t.token)) {
-        await deleteRefreshTokenByIdModel(t.id);
-        break;
-      }
-    }
-  }
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 14);
-  await storeRefreshTokenModel(user.id, hashedNewRefreshToken, expiresAt);
-
-  const cookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  } as const;
-
-  res.cookie("accessToken", newAccessToken, cookieOptions);
-  res.cookie("refreshToken", newRefreshToken, {
-    ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
 }
