@@ -5,6 +5,7 @@ import {
   getFollowersModel,
   getFollowingModel,
   getFollowingActivityModel,
+  getFriendsMovieActivityModel,
 } from "../models/follow.model.js";
 
 // SUIVRE UN UTILISATEUR
@@ -47,5 +48,13 @@ export async function getFollowing(req: Request, res: Response) {
 export async function getFollowingActivity(req: Request, res: Response) {
   const user_id = req.user!.id;
   const activity = await getFollowingActivityModel(user_id);
+  return res.status(200).json(activity);
+}
+
+// RECUPERER L'ACTIVITE DES AMIS POUR UN FILM
+export async function getFriendsMovieActivity(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const movie_id = String(req.params.movie_id);
+  const activity = await getFriendsMovieActivityModel(user_id, movie_id);
   return res.status(200).json(activity);
 }
