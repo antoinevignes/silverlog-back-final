@@ -16,6 +16,7 @@ import { Resend } from "resend";
 import generateEmail from "../utils/generate-email.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 
 dotenv.config();
 
@@ -40,8 +41,8 @@ export async function signUp(req: Request, res: Response) {
   if (exists.emailExists || exists.usernameExists)
     throw new Error("Email ou nom d'utilisateur déjà utilisé");
 
-  const hashedPassword = await bcrypt.hash(password, 14);
-  const verificationToken = await bcrypt.hash(email, 14);
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const verificationToken = await bcrypt.hash(email, 12);
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   await signUpModel({
@@ -114,58 +115,9 @@ export async function signIn(req: Request, res: Response) {
       "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
     );
 
-  const accessToken = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      top_list_id: user.top_list_id,
-      watchlist_id: user.watchlist_id,
-      avatar_path: user.avatar_path,
-    },
-    process.env.ACCESS_SECRET!,
-    { expiresIn: "15m" },
-  );
+  const { payload } = await regenerateTokensAndSetCookies(req, res, user);
 
-  const refreshToken = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      top_list_id: user.top_list_id,
-      watchlist_id: user.watchlist_id,
-      avatar_path: user.avatar_path,
-    },
-    process.env.REFRESH_SECRET!,
-    { expiresIn: "7d" },
-  );
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  const hashedRefreshToken = await bcrypt.hash(refreshToken, 14);
-  await storeRefreshTokenModel(user.id, hashedRefreshToken, expiresAt);
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  return res.status(200).json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    top_list_id: user.top_list_id,
-    watchlist_id: user.watchlist_id,
-    avatar_path: user.avatar_path,
-  });
+  return res.status(200).json(payload);
 }
 
 // SIGNOUT
@@ -173,15 +125,19 @@ export async function signOut(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
 
   if (refreshToken) {
-    const decoded = jwt.decode(refreshToken) as UserPayload | null;
-    if (decoded && decoded.id) {
-      const dbTokens = await getUserRefreshTokensModel(decoded.id);
-      for (const t of dbTokens) {
-        if (await bcrypt.compare(refreshToken, t.token)) {
-          await deleteRefreshTokenByIdModel(t.id);
-          break;
+    try {
+      const decoded = jwt.decode(refreshToken) as UserPayload | null;
+      if (decoded && decoded.id) {
+        const dbTokens = await getUserRefreshTokensModel(decoded.id);
+        for (const t of dbTokens) {
+          if (await bcrypt.compare(refreshToken, t.token)) {
+            await deleteRefreshTokenByIdModel(t.id);
+            break;
+          }
         }
       }
+    } catch (err) {
+      console.error("Erreur lors de la suppression du refresh token:", err);
     }
   }
 

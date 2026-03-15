@@ -25,16 +25,7 @@ const reviewParamSchema = z.object({
 export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
 
-  const parsed = reviewSchema.safeParse(req.body);
-
-  if (!parsed.success) {
-    return res.status(400).json({
-      success: false,
-      message: "Paramètres manquants ou invalides",
-    });
-  }
-
-  const { movie_id, content } = parsed.data;
+  const { movie_id, content } = reviewSchema.parse(req.body);
 
   const review = await createReviewModel(user_id, movie_id, content);
 
