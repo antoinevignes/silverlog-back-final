@@ -141,10 +141,12 @@ export async function storeRefreshTokenModel(
   refreshToken: string,
   expires_at: Date,
 ) {
-  await sql`
+  const rows = await sql<{ id: number }[]>`
     INSERT INTO refresh_tokens (user_id, token, expires_at)
     VALUES (${user_id}, ${refreshToken}, ${expires_at})
+    RETURNING id
   `;
+  return rows[0]?.id;
 }
 
 // SUPPRIMER LE REFRESH TOKEN
@@ -153,4 +155,14 @@ export async function deleteRefreshTokenByIdModel(id: number) {
     DELETE FROM refresh_tokens
     WHERE id = ${id}
   `;
+}
+
+// RECUPERER UN REFRESH TOKEN PAR SON ID
+export async function getRefreshTokenByIdModel(id: number) {
+  const rows = await sql<RefreshToken[]>`
+    SELECT *
+    FROM refresh_tokens
+    WHERE id = ${id}
+  `;
+  return rows[0] || null;
 }

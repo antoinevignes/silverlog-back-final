@@ -36,9 +36,10 @@ export async function updateBannerPathModel(
 
 // SUPPRIMER LE COMPTE UTILISATEUR
 export async function deleteUserModel(user_id: string) {
-  await sql`
-    DELETE FROM users WHERE id = ${user_id}
-  `;
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+    await tx`DELETE FROM users WHERE id = ${user_id}`;
+  });
 }
 
 // RECUPERER LES INFOS DE L'UTILISATEUR

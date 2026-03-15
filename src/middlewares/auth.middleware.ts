@@ -1,10 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import {
-  getUserRefreshTokensModel,
-  deleteRefreshTokenByIdModel,
-} from "../models/auth.model.js";
+import { getRefreshTokenByIdModel } from "../models/auth.model.js";
 import type { UserPayload } from "../types/db.js";
 import bcrypt from "bcryptjs";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
@@ -102,12 +99,12 @@ async function refreshAccessToken(
       process.env.REFRESH_SECRET!,
     ) as UserPayload;
 
-    const tokensInDB = await getUserRefreshTokensModel(decoded.id);
     let validToken = null;
-    for (const t of tokensInDB) {
-      if (await bcrypt.compare(refreshToken, t.token)) {
-        validToken = t;
-        break;
+
+    if (decoded.token_id) {
+      const dbToken = await getRefreshTokenByIdModel(decoded.token_id);
+      if (dbToken && (await bcrypt.compare(refreshToken, dbToken.token))) {
+        validToken = dbToken;
       }
     }
 

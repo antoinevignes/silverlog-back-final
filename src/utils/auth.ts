@@ -7,17 +7,22 @@ import {
   storeRefreshTokenModel,
 } from "../models/auth.model.js";
 
+import type { UserPayload, SessionUser } from "../types/db.js";
+
 // PAYLOAD UNIQUE POUR TOUTE L'APP
-export function generateUserPayload(user: any, overrides: any = {}) {
+export function generateUserPayload(
+  user: SessionUser,
+  overrides: Partial<UserPayload> = {},
+): UserPayload {
   return {
-    id: user.id || user.user_id,
+    id: String(user.id || user.user_id),
     username: user.username,
     email: user.email,
     role: user.role,
-    top_list_id: user.top_list_id,
-    watchlist_id: user.watchlist_id,
-    avatar_path: user.avatar_path,
-    banner_path: user.banner_path,
+    top_list_id: user.top_list_id ?? null,
+    watchlist_id: user.watchlist_id ?? null,
+    avatar_path: user.avatar_path ?? null,
+    banner_path: user.banner_path ?? null,
     ...overrides,
   };
 }
@@ -26,19 +31,19 @@ export function generateUserPayload(user: any, overrides: any = {}) {
 export async function regenerateTokensAndSetCookies(
   req: Request,
   res: Response,
-  user: any,
-  overrides: any = {},
+  user: SessionUser,
+  overrides: Partial<UserPayload> = {},
 ) {
   const payload = generateUserPayload(user, overrides);
 
   const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
     expiresIn: "15m",
   });
-  const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET!, {
+
+  const tempRefreshToken = jwt.sign(payload, process.env.REFRESH_SECRET!, {
     expiresIn: "7d",
   });
 
-  // GESTION DU REFRESH TOKEN EN BASE
   const oldRefreshToken = req.cookies.refreshToken;
   if (oldRefreshToken) {
     const dbTokens = await getUserRefreshTokensModel(payload.id);
@@ -51,8 +56,21 @@ export async function regenerateTokensAndSetCookies(
   }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const hashedNewRefreshToken = await bcrypt.hash(refreshToken, 12);
-  await storeRefreshTokenModel(payload.id, hashedNewRefreshToken, expiresAt);
+  const hashedRefreshToken = await bcrypt.hash(tempRefreshToken, 12);
+  const tokenId = await storeRefreshTokenModel(
+    payload.id,
+    hashedRefreshToken,
+    expiresAt,
+  );
+
+  // GENERER LE REFRESH TOKEN FINAL AVEC LE token_id
+  const refreshToken = jwt.sign(
+    { ...payload, token_id: tokenId },
+    process.env.REFRESH_SECRET!,
+    {
+      expiresIn: "7d",
+    },
+  );
 
   const cookieOptions = {
     httpOnly: true,
@@ -66,5 +84,9 @@ export async function regenerateTokensAndSetCookies(
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return { accessToken, refreshToken, payload };
+  return {
+    accessToken,
+    refreshToken,
+    payload: { ...payload, token_id: tokenId },
+  };
 }

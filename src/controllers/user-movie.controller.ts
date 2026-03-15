@@ -3,10 +3,9 @@ import {
   deleteRatingModel,
   getSeenMoviesModel,
   getStateModel,
-  updateSeenDateModel,
-  upsertRatingModel,
+  updateSeenDateWithMovieModel,
+  upsertRatingWithMovieModel,
 } from "../models/user-movie.model.js";
-import { upsertMovieModel } from "../models/movie.model.js";
 
 import z from "zod";
 
@@ -55,19 +54,14 @@ export async function getState(req: Request, res: Response) {
 export async function upsertRating(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
-  const { rating, title, release_date, poster_path, backdrop_path, genres } =
-    ratingMovieSchema.parse(req.body);
+  const movieData = ratingMovieSchema.parse(req.body);
 
-  await upsertMovieModel(
+  const state = await upsertRatingWithMovieModel(
+    user_id,
     movie_id,
-    title,
-    release_date,
-    poster_path,
-    backdrop_path,
-    genres,
+    movieData.rating,
+    movieData,
   );
-
-  const state = await upsertRatingModel(user_id, String(movie_id), rating);
 
   return res.status(200).json({
     success: true,
@@ -89,21 +83,14 @@ export async function deleteRating(req: Request, res: Response) {
 export async function updateSeenDate(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = movieParamSchema.parse(req.params);
-  const { date, title, release_date, poster_path, backdrop_path, genres } =
-    seenMovieSchema.parse(req.body);
+  const movieData = seenMovieSchema.parse(req.body);
 
-  if (title && movie_id) {
-    await upsertMovieModel(
-      movie_id,
-      title,
-      release_date,
-      poster_path,
-      backdrop_path,
-      genres,
-    );
-  }
-
-  await updateSeenDateModel(date, user_id, String(movie_id));
+  await updateSeenDateWithMovieModel(
+    user_id,
+    movie_id,
+    movieData.date,
+    movieData.title ? movieData : undefined,
+  );
 
   return res.status(200).json({ success: true });
 }

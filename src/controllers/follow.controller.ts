@@ -5,7 +5,6 @@ import {
   getFollowersModel,
   getFollowingModel,
   getFollowingActivityModel,
-  getFriendsMovieActivityModel,
 } from "../models/follow.model.js";
 
 // SUIVRE UN UTILISATEUR
@@ -14,7 +13,10 @@ export async function followUser(req: Request, res: Response) {
   const following_id = String(req.params.id);
 
   if (follower_id === following_id) {
-    return res.status(400).json({ success: false, message: "Vous ne pouvez pas vous suivre vous-même" });
+    return res.status(400).json({
+      success: false,
+      message: "Vous ne pouvez pas vous suivre vous-même",
+    });
   }
 
   await followUserModel(follower_id, following_id);
@@ -27,7 +29,9 @@ export async function unfollowUser(req: Request, res: Response) {
   const following_id = String(req.params.id);
 
   await unfollowUserModel(follower_id, following_id);
-  return res.status(200).json({ success: true, message: "Abonnement supprimé" });
+  return res
+    .status(200)
+    .json({ success: true, message: "Abonnement supprimé" });
 }
 
 // RECUPERER LES FOLLOWERS
@@ -48,13 +52,5 @@ export async function getFollowing(req: Request, res: Response) {
 export async function getFollowingActivity(req: Request, res: Response) {
   const user_id = req.user!.id;
   const activity = await getFollowingActivityModel(user_id);
-  return res.status(200).json(activity);
-}
-
-// RECUPERER L'ACTIVITE DES AMIS POUR UN FILM
-export async function getFriendsMovieActivity(req: Request, res: Response) {
-  const user_id = req.user!.id;
-  const movie_id = String(req.params.movie_id);
-  const activity = await getFriendsMovieActivityModel(user_id, movie_id);
   return res.status(200).json(activity);
 }

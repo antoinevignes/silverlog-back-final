@@ -53,3 +53,31 @@ export async function getCrewPicksModel() {
 
   return rows;
 }
+
+// RECUPERER L'ACTIVITE DES AMIS POUR UN FILM SPECIFIQUE
+export async function getFriendsMovieActivityModel(
+  user_id: string,
+  movie_id: string,
+) {
+  return await sql`
+    SELECT 
+        um.movie_id, 
+        um.rating, 
+        um.rated_at as created_at,
+        r.content as review_content,
+        u.id as user_id,
+        u.username,
+        u.avatar_path,
+        u.banner_path,
+        'rating' as type
+    FROM user_movies um
+    JOIN users u ON u.id = um.user_id
+    LEFT JOIN reviews r ON r.movie_id = um.movie_id AND r.user_id = um.user_id
+    WHERE um.movie_id = ${movie_id}
+    AND um.user_id IN (
+        SELECT following_id FROM follows WHERE follower_id = ${user_id}
+    )
+    AND um.rating IS NOT NULL
+    ORDER BY created_at DESC;
+  `;
+}

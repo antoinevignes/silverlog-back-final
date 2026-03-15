@@ -4,9 +4,24 @@ export interface UserPayload extends JwtPayload {
   id: string;
   username: string;
   email: string;
-  role?: string;
-  top_list_id?: number;
-  watchlist_id?: number;
+  role: string;
+  top_list_id: number | null;
+  watchlist_id: number | null;
+  avatar_path: string | null;
+  banner_path: string | null;
+  token_id?: number;
+}
+
+export interface SessionUser {
+  id?: string;
+  user_id?: string;
+  username: string;
+  email: string;
+  role: string;
+  top_list_id?: number | null;
+  watchlist_id?: number | null;
+  avatar_path?: string | null;
+  banner_path?: string | null;
 }
 
 export interface User {

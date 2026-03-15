@@ -41,35 +41,53 @@ export async function getStateModel(user_id: string, movie_id: string) {
   return rows[0] || null;
 }
 
-// AJOUTER OU MODIFIER LA NOTE D'UN FILM
-export async function upsertRatingModel(
+// AJOUTER OU MODIFIER LA NOTE D'UN FILM AVEC METADONNEES
+export async function upsertRatingWithMovieModel(
   user_id: string,
-  movie_id: string,
+  movie_id: number,
   rating: number,
+  movieData: {
+    title: string;
+    release_date: string | null;
+    poster_path: string | null;
+    backdrop_path: string | null;
+    genres: { id: number; name: string }[] | null;
+  },
 ) {
-  const rows = await sql<UserMovie[]>`
-    INSERT INTO user_movies (
-      user_id,
-      movie_id,
-      seen,
-      rating,
-      rated_at
-    )
-    VALUES (
-      ${user_id},
-      ${movie_id},
-      'true',
-      ${rating},
-      NOW()
-    )
-    ON CONFLICT (user_id, movie_id)
-    DO UPDATE SET
-      rating = EXCLUDED.rating,
-      rated_at = NOW()
-    RETURNING *;
-  `;
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
 
-  return rows[0] || null;
+    await tx`
+      INSERT INTO movies (movie_id, title, release_date, poster_path, backdrop_path, genres)
+      VALUES (
+        ${movie_id},
+        ${movieData.title},
+        ${movieData.release_date},
+        ${movieData.poster_path},
+        ${movieData.backdrop_path},
+        ${movieData.genres ? tx.json(movieData.genres) : null}
+      )
+      ON CONFLICT (movie_id) DO UPDATE SET
+        title = COALESCE(EXCLUDED.title, movies.title),
+        release_date = COALESCE(EXCLUDED.release_date, movies.release_date),
+        poster_path = COALESCE(EXCLUDED.poster_path, movies.poster_path),
+        backdrop_path = COALESCE(EXCLUDED.backdrop_path, movies.backdrop_path),
+        genres = COALESCE(EXCLUDED.genres, movies.genres)
+    `;
+
+    const [userMovie] = await tx<UserMovie[]>`
+      INSERT INTO user_movies (user_id, movie_id, seen, rating, rated_at)
+      VALUES (${user_id}, ${movie_id}, true, ${rating}, NOW())
+      ON CONFLICT (user_id, movie_id)
+      DO UPDATE SET
+        rating = EXCLUDED.rating,
+        rated_at = NOW(),
+        seen = true
+      RETURNING *;
+    `;
+
+    return userMovie;
+  });
 }
 
 // SUPPRIMER LA NOTE D'UN FILM
@@ -82,29 +100,51 @@ export async function deleteRatingModel(user_id: string, movie_id: string) {
   `;
 }
 
-// MODIFIER LA DATE DE VISIONNAGE D'UN FILM
-export async function updateSeenDateModel(
-  date: Date,
+// MODIFIER LA DATE DE VISIONNAGE D'UN FILM AVEC METADONNEES
+export async function updateSeenDateWithMovieModel(
   user_id: string,
-  movie_id: string,
+  movie_id: number,
+  date: Date,
+  movieData?: {
+    title: string;
+    release_date: string | null;
+    poster_path: string | null;
+    backdrop_path: string | null;
+    genres: { id: number; name: string }[] | null;
+  },
 ) {
-  await sql`
-    INSERT INTO user_movies (
-      user_id,
-      movie_id,
-      seen,
-      seen_at
-    )
-    VALUES (
-      ${user_id},
-      ${movie_id},
-      'true',
-      ${date}
-    )
-    ON CONFLICT (user_id, movie_id)
-    DO UPDATE SET
-      seen_at = EXCLUDED.seen_at;
-  `;
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    if (movieData) {
+      await tx`
+        INSERT INTO movies (movie_id, title, release_date, poster_path, backdrop_path, genres)
+        VALUES (
+          ${movie_id},
+          ${movieData.title},
+          ${movieData.release_date},
+          ${movieData.poster_path},
+          ${movieData.backdrop_path},
+          ${movieData.genres ? tx.json(movieData.genres) : null}
+        )
+        ON CONFLICT (movie_id) DO UPDATE SET
+          title = COALESCE(EXCLUDED.title, movies.title),
+          release_date = COALESCE(EXCLUDED.release_date, movies.release_date),
+          poster_path = COALESCE(EXCLUDED.poster_path, movies.poster_path),
+          backdrop_path = COALESCE(EXCLUDED.backdrop_path, movies.backdrop_path),
+          genres = COALESCE(EXCLUDED.genres, movies.genres)
+      `;
+    }
+
+    await tx`
+      INSERT INTO user_movies (user_id, movie_id, seen, seen_at)
+      VALUES (${user_id}, ${movie_id}, true, ${date})
+      ON CONFLICT (user_id, movie_id)
+      DO UPDATE SET
+        seen_at = EXCLUDED.seen_at,
+        seen = true;
+    `;
+  });
 }
 
 // RECUPERER LES FILMS VUS PAR L'UTILISATEUR
