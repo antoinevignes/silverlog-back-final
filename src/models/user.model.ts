@@ -138,3 +138,14 @@ WHERE u.id = ${user_id};
 
   return rows[0];
 }
+
+// RECHERCHER DES UTILISATEURS PAR USERNAME
+export async function searchUsersModel(query: string) {
+  const rows = await sql`
+    SELECT id, username, avatar_path
+    FROM users
+    WHERE username ILIKE ${"%" + query + "%"}
+    LIMIT 10
+  `;
+  return rows;
+}

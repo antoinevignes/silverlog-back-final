@@ -7,6 +7,7 @@ import {
   updateAvatarPathModel,
   updateBannerPathModel,
   deleteUserModel,
+  searchUsersModel,
 } from "../models/user.model.js";
 import {
   deleteAvatarFromCloudinary,
@@ -142,4 +143,13 @@ export async function deleteAccount(req: Request, res: Response) {
   return res
     .status(200)
     .json({ success: true, message: "Compte supprimé avec succès" });
+}
+
+// RECHERCHER DES UTILISATEURS
+export async function searchUsers(req: Request, res: Response) {
+  const { q } = z.object({ q: z.string().min(1) }).parse(req.query);
+
+  const users = await searchUsersModel(q);
+
+  return res.status(200).json(users);
 }
