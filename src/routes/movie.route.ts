@@ -4,11 +4,12 @@ import {
   getCrewPicks,
   getFriendsMovieActivity,
 } from "../controllers/movie.controller.js";
+import { optionalAuth } from "../middlewares/auth.middleware.js";
 
 const movieRoute = Router();
 
 movieRoute.get("/crew-picks", getCrewPicks);
 movieRoute.get("/:movie_id", getMovieData);
-movieRoute.get("/:movie_id/friends", getFriendsMovieActivity);
+movieRoute.get("/:movie_id/friends", optionalAuth, getFriendsMovieActivity);
 
 export default movieRoute;
