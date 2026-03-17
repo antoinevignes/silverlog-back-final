@@ -3,6 +3,7 @@ import type { UserMovie } from "../types/db.js";
 
 export interface MovieState {
   seen: boolean;
+  seen_at: Date | null;
   rating: number | null;
   lists: { id: number; list_type: string; title: string }[];
 }
@@ -15,6 +16,7 @@ export async function getStateModel(user_id: string, movie_id: string) {
     )
     SELECT
       COALESCE(um.seen, false) AS seen,
+      um.seen_at,
       um.rating,
       COALESCE(
           jsonb_agg(
@@ -35,7 +37,7 @@ export async function getStateModel(user_id: string, movie_id: string) {
     LEFT JOIN lists l
       ON l.id = lm.list_id
      AND l.user_id = b.user_id
-    GROUP BY um.seen, um.rating;
+    GROUP BY um.seen, um.rating, um.seen_at;
     `;
 
   return rows[0] || null;
@@ -166,4 +168,29 @@ export async function getSeenMoviesModel(user_id: string) {
   `;
 
   return rows;
+}
+
+// SUPPRIMER UN FILM DU JOURNAL (VISIONNAGE)
+export async function removeFromDiarylModel(user_id: string, movie_id: number) {
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    // 1. Mettre à jour l'état vu
+    await tx`
+      UPDATE user_movies
+      SET seen = false, seen_at = NULL
+      WHERE user_id = ${user_id} AND movie_id = ${movie_id}
+    `;
+
+    // 2. Nettoyage : si ni note ni vu, on supprime la ligne
+    await tx`
+      DELETE FROM user_movies
+      WHERE user_id = ${user_id} 
+        AND movie_id = ${movie_id} 
+        AND seen = false 
+        AND rating IS NULL
+    `;
+
+    return { success: true };
+  });
 }

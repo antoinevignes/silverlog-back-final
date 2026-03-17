@@ -5,6 +5,7 @@ import {
   getState,
   updateSeenDate,
   upsertRating,
+  removeFromDiary,
 } from "../controllers/user-movie.controller.js";
 import { optionalAuth, requireAuth } from "../middlewares/auth.middleware.js";
 
@@ -15,5 +16,6 @@ userMovieRoute.get("/:movie_id", optionalAuth, getState);
 userMovieRoute.post("/:movie_id/rate", requireAuth, upsertRating);
 userMovieRoute.delete("/:movie_id", requireAuth, deleteRating);
 userMovieRoute.post("/:movie_id/seen-date", requireAuth, updateSeenDate);
+userMovieRoute.delete("/:movie_id/diary", requireAuth, removeFromDiary);
 
 export default userMovieRoute;

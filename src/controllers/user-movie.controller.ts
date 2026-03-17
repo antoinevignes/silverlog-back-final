@@ -5,6 +5,7 @@ import {
   getStateModel,
   updateSeenDateWithMovieModel,
   upsertRatingWithMovieModel,
+  removeFromDiarylModel,
 } from "../models/user-movie.model.js";
 
 import z from "zod";
@@ -102,4 +103,14 @@ export async function getSeenMovies(req: Request, res: Response) {
   const seenMovies = await getSeenMoviesModel(user_id);
 
   return res.status(200).json(seenMovies);
+}
+
+// SUPPRIMER UN FILM DU JOURNAL
+export async function removeFromDiary(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { movie_id } = movieParamSchema.parse(req.params);
+
+  await removeFromDiarylModel(user_id, movie_id);
+
+  return res.status(200).json({ success: true });
 }
