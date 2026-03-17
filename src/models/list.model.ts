@@ -171,6 +171,26 @@ export async function deleteListModel(list_id: number) {
     `;
 }
 
+// METTRE A JOUR UNE LISTE
+export async function updateListModel(
+  list_id: number,
+  updates: {
+    title?: string | undefined;
+    description?: string | null | undefined;
+    is_public?: boolean | undefined;
+  },
+) {
+  const rows = await sql<List[]>`
+    UPDATE lists
+    SET 
+      title = COALESCE(${updates.title ?? null}, title),
+      description = COALESCE(${updates.description ?? null}, description),
+      is_public = COALESCE(${updates.is_public ?? null}, is_public),
+      updated_at = NOW()
+    WHERE id = ${list_id}
+  `;
+}
+
 // RECUPERER LES LISTES PUBLIQUES
 export async function getPublicListsModel() {
   return await sql<List[]>`
@@ -242,6 +262,50 @@ export async function toggleSaveListModel(user_id: string, list_id: number) {
       await tx`INSERT INTO saved_lists (user_id, list_id) VALUES (${user_id}, ${list_id})`;
       return { action: "saved" };
     }
+  });
+}
+
+// SUPPRIMER UN FILM D'UNE LISTE (DÉDIÉ)
+export async function removeMovieFromListModel(
+  user_id: string,
+  list_id: number,
+  movie_id: number,
+) {
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    const list = await tx<List[]>`
+      SELECT list_type FROM lists WHERE id = ${list_id} AND user_id = ${user_id}
+    `;
+
+    if (!list[0]) {
+      throw new Error("Liste introuvable ou accès interdit");
+    }
+
+    await tx`
+      DELETE FROM list_movies
+      WHERE list_id = ${list_id} AND movie_id = ${movie_id}
+    `;
+
+    if (list[0].list_type === "top") {
+      await tx`
+        WITH updated AS (
+          SELECT id, row_number() OVER (ORDER BY position) as new_pos
+          FROM list_movies
+          WHERE list_id = ${list_id}
+        )
+        UPDATE list_movies
+        SET position = updated.new_pos
+        FROM updated
+        WHERE list_movies.id = updated.id
+      `;
+    }
+
+    await tx`
+      UPDATE lists SET updated_at = NOW() WHERE id = ${list_id}
+    `;
+
+    return { success: true };
   });
 }
 
