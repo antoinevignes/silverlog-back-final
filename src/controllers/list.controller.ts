@@ -9,6 +9,8 @@ import {
   getUserCustomListsModel,
   toggleMovieInListModel,
   toggleSaveListModel,
+  updateListModel,
+  removeMovieFromListModel,
 } from "../models/list.model.js";
 import z from "zod";
 import { upsertMovieModel } from "../models/movie.model.js";
@@ -147,4 +149,47 @@ export async function toggleSaveList(req: Request, res: Response) {
     success: true,
     action: result.action,
   });
+}
+
+// METTRE A JOUR UNE LISTE
+export async function updateList(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { list_id } = listParamsSchema.parse(req.params);
+
+  const updates = z
+    .object({
+      title: z.string().min(1).optional(),
+      description: z.string().nullable().optional(),
+      is_public: z.boolean().optional(),
+    })
+    .parse(req.body);
+
+  const list = await findListById(list_id);
+
+  if (!list) {
+    return res.status(404).json({ error: "Liste introuvable" });
+  }
+
+  if (Number(list.user_id) !== Number(user_id)) {
+    return res.status(403).json({ error: "Accès interdit" });
+  }
+
+  const updatedList = await updateListModel(list_id, updates);
+
+  return res.status(200).json(updatedList);
+}
+
+// SUPPRIMER UN FILM D'UNE LISTE (DÉDIÉ)
+export async function removeMovieFromList(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { list_id, movie_id } = z
+    .object({
+      list_id: z.coerce.number(),
+      movie_id: z.coerce.number(),
+    })
+    .parse(req.params);
+
+  await removeMovieFromListModel(user_id, list_id, movie_id);
+
+  return res.status(200).json({ success: true });
 }
