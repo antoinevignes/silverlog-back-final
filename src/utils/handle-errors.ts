@@ -1,6 +1,27 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
+// CLASSE D'ERREUR PERSONNALISEE AVEC CODE HTTP
+export class AppError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+// COOKIE OPTIONS CENTRALISEES
+export function getCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  } as const;
+}
+
+// ERROR HANDLER GLOBAL
 export function errorHandler(
   err: unknown,
   req: Request,
@@ -17,6 +38,8 @@ export function errorHandler(
         message: issue.message,
       })),
     });
+  } else if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ message: err.message });
   } else if (err instanceof Error) {
     return res.status(400).json({ message: err.message });
   } else {

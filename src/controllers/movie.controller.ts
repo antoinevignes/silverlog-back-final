@@ -31,7 +31,7 @@ export async function getFriendsMovieActivity(req: Request, res: Response) {
     return res.status(200).json([]);
   }
 
-  const movie_id = String(req.params.movie_id);
-  const activity = await getFriendsMovieActivityModel(user_id, movie_id);
+  const { movie_id } = paramsSchema.parse(req.params);
+  const activity = await getFriendsMovieActivityModel(user_id, String(movie_id));
   return res.status(200).json(activity);
 }

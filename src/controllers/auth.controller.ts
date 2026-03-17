@@ -6,9 +6,7 @@ import {
   deleteRefreshTokenByIdModel,
   signInModel,
   signUpModel,
-  storeRefreshTokenModel,
   verifyEmailModel,
-  getUserRefreshTokensModel,
 } from "../models/auth.model.js";
 import type { UserPayload } from "../types/db.js";
 import type { Request, Response } from "express";
@@ -17,6 +15,7 @@ import generateEmail from "../utils/generate-email.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
+import { getCookieOptions } from "../utils/handle-errors.js";
 
 dotenv.config();
 
@@ -127,29 +126,16 @@ export async function signOut(req: Request, res: Response) {
   if (refreshToken) {
     try {
       const decoded = jwt.decode(refreshToken) as UserPayload | null;
-      if (decoded && decoded.id) {
-        const dbTokens = await getUserRefreshTokensModel(decoded.id);
-        for (const t of dbTokens) {
-          if (await bcrypt.compare(refreshToken, t.token)) {
-            await deleteRefreshTokenByIdModel(t.id);
-            break;
-          }
-        }
+      if (decoded?.token_id) {
+        await deleteRefreshTokenByIdModel(decoded.token_id);
       }
     } catch (err) {
       console.error("Erreur lors de la suppression du refresh token:", err);
     }
   }
 
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  });
+  const options = getCookieOptions();
+  res.clearCookie("accessToken", options);
+  res.clearCookie("refreshToken", options);
   return res.status(200).json({ success: true });
 }

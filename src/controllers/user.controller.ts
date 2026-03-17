@@ -9,11 +9,13 @@ import {
   deleteUserModel,
   searchUsersModel,
 } from "../models/user.model.js";
+import { checkUserExists } from "../models/auth.model.js";
 import {
   deleteAvatarFromCloudinary,
   deleteBannerFromCloudinary,
 } from "../utils/cloudinary.js";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
+import { getCookieOptions } from "../utils/handle-errors.js";
 
 // RECUPERER LES INFOS DE L'UTILISATEUR
 export async function getUser(req: Request, res: Response) {
@@ -35,10 +37,6 @@ export async function updateUsername(req: Request, res: Response) {
   const { username } = z
     .object({ username: z.string().trim().min(1) })
     .parse(req.body);
-
-  // We need to check if username exists. Let's assume we import a checkUserExists function from auth module or something.
-  // Oh wait, checkUserExists is in auth.model.ts now. I need to import it!
-  const { checkUserExists } = await import("../models/auth.model.js");
 
   const exists = await checkUserExists("", username);
   if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
@@ -131,14 +129,9 @@ export async function deleteAccount(req: Request, res: Response) {
 
   await deleteUserModel(user_id);
 
-  const cookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  } as const;
-
-  res.clearCookie("accessToken", cookieOptions);
-  res.clearCookie("refreshToken", cookieOptions);
+  const options = getCookieOptions();
+  res.clearCookie("accessToken", options);
+  res.clearCookie("refreshToken", options);
 
   return res
     .status(200)

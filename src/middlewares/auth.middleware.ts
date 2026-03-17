@@ -5,6 +5,7 @@ import { getRefreshTokenByIdModel } from "../models/auth.model.js";
 import type { UserPayload } from "../types/db.js";
 import bcrypt from "bcryptjs";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
+import { getCookieOptions } from "../utils/handle-errors.js";
 
 dotenv.config();
 
@@ -109,13 +110,9 @@ async function refreshAccessToken(
     }
 
     if (!validToken) {
-      const cookieOptions = {
-        httpOnly: true,
-        secure: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      } as const;
-      res.clearCookie("accessToken", cookieOptions);
-      res.clearCookie("refreshToken", cookieOptions);
+      const options = getCookieOptions();
+      res.clearCookie("accessToken", options);
+      res.clearCookie("refreshToken", options);
       return res.status(401).json({ error: "Session révoquée" });
     }
 
@@ -124,31 +121,11 @@ async function refreshAccessToken(
     req.user = payload as UserPayload;
     next();
   } catch (error) {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    } as const;
-    res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", cookieOptions);
+    const options = getCookieOptions();
+    res.clearCookie("accessToken", options);
+    res.clearCookie("refreshToken", options);
     res.status(401).json({
       error: "Session expirée, veuillez vous reconnecter",
     });
   }
 }
-
-// export const requireRole = (...allowedRoles) => {
-//   return (req: Request, res: Response, next: NextFunction) => {
-//     if (!req.user) {
-//       return res.status(401).json({ error: "Non authentifié" });
-//     }
-
-//     if (!allowedRoles.includes(req.user.role)) {
-//       return res.status(403).json({
-//         error: "Accès interdit",
-//       });
-//     }
-
-//     next();
-//   };
-// };

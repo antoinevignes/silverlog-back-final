@@ -3,11 +3,11 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
   deleteRefreshTokenByIdModel,
-  getUserRefreshTokensModel,
   storeRefreshTokenModel,
 } from "../models/auth.model.js";
 
 import type { UserPayload, SessionUser } from "../types/db.js";
+import { getCookieOptions } from "./handle-errors.js";
 
 // PAYLOAD UNIQUE POUR TOUTE L'APP
 export function generateUserPayload(
@@ -46,12 +46,9 @@ export async function regenerateTokensAndSetCookies(
 
   const oldRefreshToken = req.cookies.refreshToken;
   if (oldRefreshToken) {
-    const dbTokens = await getUserRefreshTokensModel(payload.id);
-    for (const t of dbTokens) {
-      if (await bcrypt.compare(oldRefreshToken, t.token)) {
-        await deleteRefreshTokenByIdModel(t.id);
-        break;
-      }
+    const oldDecoded = jwt.decode(oldRefreshToken) as UserPayload | null;
+    if (oldDecoded?.token_id) {
+      await deleteRefreshTokenByIdModel(oldDecoded.token_id);
     }
   }
 
@@ -72,11 +69,7 @@ export async function regenerateTokensAndSetCookies(
     },
   );
 
-  const cookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  } as const;
+  const cookieOptions = getCookieOptions();
 
   res.cookie("accessToken", accessToken, cookieOptions);
   res.cookie("refreshToken", refreshToken, {

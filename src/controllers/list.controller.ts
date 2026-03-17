@@ -103,11 +103,16 @@ export async function createList(req: Request, res: Response) {
 
 // SUPPRIMER UNE LISTE
 export async function deleteList(req: Request, res: Response) {
+  const user_id = req.user!.id;
   const { list_id } = listParamsSchema.parse(req.params);
 
   const listExists = await findListById(Number(list_id));
   if (!listExists) {
     throw new Error("Cette liste n'existe pas");
+  }
+
+  if (listExists.user_id !== user_id) {
+    return res.status(403).json({ error: "Accès interdit" });
   }
 
   await deleteListModel(Number(list_id));
