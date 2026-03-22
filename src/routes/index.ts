@@ -8,6 +8,7 @@ import userMovieRoute from "./user-movie.route.js";
 import reviewRoute from "./review.route.js";
 import sql from "../db.js";
 import listRoute from "./list.route.js";
+import adminRoute from "./admin.route.js";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.use("/tmdb", tmdbRoute);
 router.use("/user_movie", userMovieRoute);
 router.use("/reviews", reviewRoute);
 router.use("/lists", listRoute);
+router.use("/admin", adminRoute);
 
 router.get("/health", async (req, res) => {
   try {

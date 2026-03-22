@@ -61,6 +61,8 @@ WITH user_stats AS (
 list_counts AS (
     SELECT 
         l.user_id,
+        MAX(l.id) FILTER (WHERE l.list_type = 'watchlist') as watchlist_id,
+        MAX(l.id) FILTER (WHERE l.list_type = 'top') as top_list_id,
         COUNT(lm.movie_id) FILTER (WHERE l.list_type = 'watchlist') as watchlist_total,
         COUNT(DISTINCT l.id) FILTER (WHERE l.list_type = 'custom') as custom_lists_total
     FROM lists l
@@ -119,6 +121,8 @@ SELECT
     u.location,
     u.avatar_path,
     u.banner_path,
+    lc.watchlist_id,
+    lc.top_list_id,
     COALESCE(us.viewed_movies, 0) as viewed_movies_count,
     COALESCE(us.viewed_movies_this_year, 0) as viewed_movies_this_year_count,
     COALESCE(us.avg_rating, 0) as avg_rating,
