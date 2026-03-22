@@ -2,13 +2,15 @@ import { Router } from "express";
 import {
   getMovieData,
   getCrewPicks,
+  updateCrewPicks,
   getFriendsMovieActivity,
 } from "../controllers/movie.controller.js";
-import { optionalAuth } from "../middlewares/auth.middleware.js";
+import { optionalAuth, requireAuth, requireAdmin } from "../middlewares/auth.middleware.js";
 
 const movieRoute = Router();
 
 movieRoute.get("/crew-picks", getCrewPicks);
+movieRoute.put("/crew-picks", requireAuth, requireAdmin, updateCrewPicks);
 movieRoute.get("/:movie_id", getMovieData);
 movieRoute.get("/:movie_id/friends", optionalAuth, getFriendsMovieActivity);
 

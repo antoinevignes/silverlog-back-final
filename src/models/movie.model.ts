@@ -54,6 +54,20 @@ export async function getCrewPicksModel() {
   return rows;
 }
 
+export async function updateCrewPicksModel(movieIds: number[], adminId: string) {
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+    await tx`DELETE FROM crew_picks`;
+
+    for (let i = 0; i < movieIds.length; i++) {
+      await tx`
+        INSERT INTO crew_picks (movie_id, added_by, added_at)
+        VALUES (${movieIds[i] as number}, ${adminId}, NOW() - (${i} || ' milliseconds')::interval)
+      `;
+    }
+  });
+}
+
 // RECUPERER L'ACTIVITE DES AMIS POUR UN FILM SPECIFIQUE
 export async function getFriendsMovieActivityModel(
   user_id: string,
