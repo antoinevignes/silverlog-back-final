@@ -23,6 +23,7 @@ authRoute.get("/session", optionalAuth, (req, res) => {
       id: req.user!.id,
       username: req.user!.username,
       email: req.user!.email,
+      role: req.user!.role,
       top_list_id: req.user!.top_list_id,
       watchlist_id: req.user!.watchlist_id,
       avatar_path: req.user!.avatar_path,

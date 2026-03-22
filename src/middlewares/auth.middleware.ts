@@ -44,6 +44,17 @@ export async function requireAuth(
   }
 }
 
+export async function requireAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    return res.status(403).json({ error: "Accès refusé. Droits administrateur requis." });
+  }
+}
 export async function optionalAuth(
   req: Request,
   res: Response,

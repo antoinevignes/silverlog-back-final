@@ -107,6 +107,7 @@ export async function signInModel(email: string) {
       u.email,
       u.username,
       u.password,
+      u.role,
       u.verified,
       u.avatar_path,
 
