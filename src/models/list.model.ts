@@ -122,7 +122,7 @@ export async function getListDetailsModel(
             'release_date', m.release_date,
             'genres', m.genres,
             'seen_at', um.seen_at
-          )), '[]') 
+          ) ORDER BY lm.position ASC, lm.added_at ASC), '[]') 
           FROM list_movies lm
           JOIN movies m ON m.movie_id = lm.movie_id
           LEFT JOIN user_movies um ON um.movie_id = lm.movie_id AND um.user_id = ${user_id}
@@ -202,7 +202,7 @@ export async function getPublicListsModel() {
       COUNT(sl.*)::int as saved_count,
         (SELECT COALESCE(jsonb_agg(jsonb_build_object(
           'movie_id', lm.movie_id, 
-          'poster_path', m.poster_path)), 
+          'poster_path', m.poster_path) ORDER BY lm.position ASC, lm.added_at ASC), 
         '[]')
           FROM list_movies lm
           LEFT JOIN movies m ON m.movie_id = lm.movie_id
@@ -230,7 +230,7 @@ export async function getUserCustomListsModel(
       COUNT(sl.*)::int as saved_count,
         (SELECT COALESCE(jsonb_agg(jsonb_build_object(
           'movie_id', lm.movie_id, 
-          'poster_path', m.poster_path)), 
+          'poster_path', m.poster_path) ORDER BY lm.position ASC, lm.added_at ASC), 
         '[]')
           FROM list_movies lm
           LEFT JOIN movies m ON m.movie_id = lm.movie_id
@@ -317,4 +317,40 @@ export async function findListById(list_id: number) {
     WHERE id = ${list_id}
   `;
   return rows[0] || null;
+}
+
+// METTRE A JOUR L'ORDRE D'UNE LISTE
+export async function updateListOrderModel(
+  user_id: string,
+  list_id: number,
+  ordered_movie_ids: number[],
+) {
+  return await sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    // Vérifier l'accès
+    const list = await tx<List[]>`
+      SELECT id FROM lists WHERE id = ${list_id} AND user_id = ${user_id}
+    `;
+
+    if (!list[0]) {
+      throw new Error("Liste introuvable ou accès interdit");
+    }
+
+    // Mettre à jour la position pour chaque film dans l'ordre du tableau
+    for (const [i, movieId] of ordered_movie_ids.entries()) {
+      const position = i + 1;
+
+      await tx`
+        UPDATE list_movies
+        SET position = ${position}
+        WHERE list_id = ${list_id} AND movie_id = ${movieId}
+      `;
+    }
+
+    // Mettre à jour date modification
+    await tx`UPDATE lists SET updated_at = NOW() WHERE id = ${list_id}`;
+
+    return { success: true };
+  });
 }

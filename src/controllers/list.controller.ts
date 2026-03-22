@@ -10,6 +10,7 @@ import {
   toggleMovieInListModel,
   toggleSaveListModel,
   updateListModel,
+  updateListOrderModel,
   removeMovieFromListModel,
 } from "../models/list.model.js";
 import z from "zod";
@@ -195,6 +196,22 @@ export async function removeMovieFromList(req: Request, res: Response) {
     .parse(req.params);
 
   await removeMovieFromListModel(user_id, list_id, movie_id);
+
+  return res.status(200).json({ success: true });
+}
+
+// REORGANISER UNE LISTE
+export async function updateListOrder(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { list_id } = listParamsSchema.parse(req.params);
+
+  const { movie_ids } = z
+    .object({
+      movie_ids: z.array(z.coerce.number()),
+    })
+    .parse(req.body);
+
+  await updateListOrderModel(user_id, Number(list_id), movie_ids);
 
   return res.status(200).json({ success: true });
 }

@@ -10,6 +10,7 @@ import {
   toggleMovieInList,
   toggleSaveList,
   updateList,
+  updateListOrder,
   removeMovieFromList,
 } from "../controllers/list.controller.js";
 
@@ -25,5 +26,6 @@ listRoute.patch("/:list_id", requireAuth, updateList);
 listRoute.delete("/:list_id", requireAuth, deleteList);
 listRoute.delete("/:list_id/movies/:movie_id", requireAuth, removeMovieFromList);
 listRoute.post("/:list_id/movies/toggle", requireAuth, toggleMovieInList);
+listRoute.put("/:list_id/reorder", requireAuth, updateListOrder);
 
 export default listRoute;
