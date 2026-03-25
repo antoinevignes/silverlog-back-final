@@ -51,6 +51,10 @@ WITH user_stats AS (
         COUNT(movie_id) as viewed_movies,
         COUNT(movie_id) FILTER (
             WHERE EXTRACT(YEAR FROM seen_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM seen_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+        ) as viewed_movies_this_month,
+        COUNT(movie_id) FILTER (
+            WHERE EXTRACT(YEAR FROM seen_at) = EXTRACT(YEAR FROM CURRENT_DATE)
         ) as viewed_movies_this_year,
         ROUND((AVG(rating) / 2)::NUMERIC, 1) as avg_rating
     FROM user_movies
@@ -64,7 +68,11 @@ list_counts AS (
         MAX(l.id) FILTER (WHERE l.list_type = 'watchlist') as watchlist_id,
         MAX(l.id) FILTER (WHERE l.list_type = 'top') as top_list_id,
         COUNT(lm.movie_id) FILTER (WHERE l.list_type = 'watchlist') as watchlist_total,
-        COUNT(DISTINCT l.id) FILTER (WHERE l.list_type = 'custom') as custom_lists_total
+        COUNT(DISTINCT l.id) FILTER (WHERE l.list_type = 'custom') as custom_lists_total,
+        COUNT(lm.movie_id) FILTER (
+            WHERE l.list_type = 'watchlist' 
+            AND lm.added_at >= NOW() - INTERVAL '30 days'
+        ) as recent_watchlist_count
     FROM lists l
     LEFT JOIN list_movies lm ON lm.list_id = l.id
     WHERE l.user_id = ${user_id}
@@ -124,10 +132,12 @@ SELECT
     lc.watchlist_id,
     lc.top_list_id,
     COALESCE(us.viewed_movies, 0) as viewed_movies_count,
+    COALESCE(us.viewed_movies_this_month, 0) as viewed_movies_this_month_count,
     COALESCE(us.viewed_movies_this_year, 0) as viewed_movies_this_year_count,
     COALESCE(us.avg_rating, 0) as avg_rating,
     COALESCE(lc.watchlist_total, 0) as watchlist_total,
     COALESCE(lc.custom_lists_total, 0) as custom_lists_total,
+    COALESCE(lc.recent_watchlist_count, 0) as recent_watchlist_count,
     COALESCE(tm.top_json, '[]') as top_movies,
     COALESCE((SELECT activity_json FROM recent_activity), '[]') as recent_activity,
     (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as followers_count,
