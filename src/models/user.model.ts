@@ -153,6 +153,13 @@ WHERE u.id = ${user_id};
   return rows[0];
 }
 
+// MODIFIER LE MOT DE PASSE
+export async function updatePasswordModel(user_id: string, password_hash: string) {
+  await sql`
+    UPDATE users SET password = ${password_hash} WHERE id = ${user_id}
+  `;
+}
+
 // RECHERCHER DES UTILISATEURS PAR USERNAME
 export async function searchUsersModel(query: string) {
   const rows = await sql`

@@ -8,14 +8,51 @@ import {
   updateBannerPathModel,
   deleteUserModel,
   searchUsersModel,
+  updatePasswordModel,
 } from "../models/user.model.js";
-import { checkUserExists } from "../models/auth.model.js";
+import { checkUserExists, signInModel } from "../models/auth.model.js";
+import bcrypt from "bcryptjs";
 import {
   deleteAvatarFromCloudinary,
   deleteBannerFromCloudinary,
 } from "../utils/cloudinary.js";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 import { getCookieOptions } from "../utils/handle-errors.js";
+
+const passwordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .trim()
+      .min(12, "Mot de passe trop court")
+      .max(128, "Mot de passe trop long")
+      .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
+      .regex(/[a-z]/, "Doit contenir au moins une minuscule")
+      .regex(/\d/, "Doit contenir au moins un chiffre")
+      .regex(
+        new RegExp("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?~`]"),
+        "Doit contenir un caractère spécial",
+      )
+      .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
+    newPassword: z
+      .string()
+      .trim()
+      .min(12, "Mot de passe trop court")
+      .max(128, "Mot de passe trop long")
+      .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
+      .regex(/[a-z]/, "Doit contenir au moins une minuscule")
+      .regex(/\d/, "Doit contenir au moins un chiffre")
+      .regex(
+        new RegExp("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?~`]"),
+        "Doit contenir un caractère spécial",
+      )
+      .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
+    confirmPassword: z.string().trim(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });
 
 // RECUPERER LES INFOS DE L'UTILISATEUR
 export async function getUser(req: Request, res: Response) {
@@ -145,4 +182,34 @@ export async function searchUsers(req: Request, res: Response) {
   const users = await searchUsersModel(q);
 
   return res.status(200).json(users);
+}
+
+export async function updatePassword(req: Request, res: Response) {
+  const user = req.user!;
+  const parsed = passwordSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ success: false, errors: parsed.error.flatten() });
+  }
+
+  const dbUser = await signInModel(user.email);
+  if (!dbUser || !dbUser.password) throw new Error("Utilisateur introuvable");
+
+  const passwordMatch = await bcrypt.compare(
+    parsed.data.currentPassword,
+    dbUser.password,
+  );
+
+  if (!passwordMatch) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Mot de passe actuel incorrect" });
+  }
+
+  const hashedPassword = await bcrypt.hash(parsed.data.newPassword, 12);
+  await updatePasswordModel(user.id, hashedPassword);
+
+  return res.status(200).json({ success: true });
 }

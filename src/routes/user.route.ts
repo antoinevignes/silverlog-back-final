@@ -11,6 +11,7 @@ import {
   deleteAccount,
   getUser,
   searchUsers,
+  updatePassword,
 } from "../controllers/user.controller.js";
 
 const userRoute = Router();
@@ -23,6 +24,7 @@ userRoute.delete("/avatar", requireAuth, deleteAvatar);
 userRoute.patch("/banner", requireAuth, uploadBanner.single("banner"), updateBanner);
 userRoute.delete("/banner", requireAuth, deleteBanner);
 userRoute.delete("/delete", requireAuth, deleteAccount);
+userRoute.patch("/password", requireAuth, updatePassword);
 userRoute.get("/:user_id", optionalAuth, getUser);
 
 export default userRoute;
