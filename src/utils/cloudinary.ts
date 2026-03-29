@@ -11,6 +11,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
+interface CloudinaryParams {
+  folder: string;
+  allowed_formats: string[];
+  transformation: Array<Record<string, unknown>>;
+}
+
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -19,7 +25,7 @@ const storage = new CloudinaryStorage({
     transformation: [
       { width: 256, height: 256, crop: "fill", gravity: "face" },
     ],
-  } as any,
+  } as CloudinaryParams,
 });
 
 export const upload = multer({
@@ -42,7 +48,7 @@ const storageBanner = new CloudinaryStorage({
     folder: "silverlog/banners",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
     transformation: [{ width: 1200, height: 675, crop: "fill" }],
-  } as any,
+  } as CloudinaryParams,
 });
 
 export const uploadBanner = multer({

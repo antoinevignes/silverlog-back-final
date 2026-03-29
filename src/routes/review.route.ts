@@ -7,12 +7,14 @@ import {
   getReviewsByMovie,
   likeReview,
   getRecentReviews,
+  getPopularReviews,
 } from "../controllers/review.controller.js";
 
 const reviewRoute = Router();
 
 reviewRoute.post("/", requireAuth, createReview);
 reviewRoute.get("/recent", optionalAuth, getRecentReviews);
+reviewRoute.get("/popular", getPopularReviews);
 reviewRoute.get("/:movie_id", requireAuth, getReview);
 reviewRoute.get("/:movie_id/all", optionalAuth, getReviewsByMovie);
 reviewRoute.post("/:review_id/like", requireAuth, likeReview);

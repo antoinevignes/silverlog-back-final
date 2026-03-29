@@ -10,9 +10,16 @@ export async function proxyTMDB(req: Request, res: Response) {
     endpoint = endpoint.join("/");
   }
 
-  const queryParams = new URLSearchParams(req.query as any).toString();
+  const queryString = Object.entries(req.query)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((v) => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`).join("&");
+      }
+      return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
+    })
+    .join("&");
 
-  const url = `${process.env.TMDB_URL}/${endpoint}?${queryParams}`;
+  const url = `${process.env.TMDB_URL}/${endpoint}?${queryString}`;
 
   const response = await fetch(url, {
     headers: {

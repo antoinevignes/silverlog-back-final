@@ -4,19 +4,18 @@ import {
   getCrewPicksModel,
   updateCrewPicksModel,
   getFriendsMovieActivityModel,
+  getMoviesRatingsModel,
 } from "../models/movie.model.js";
-import z from "zod";
+import dotenv from "dotenv";
+import {
+  movieParamsSchema,
+  updateCrewPicksSchema,
+} from "../schemas/index.js";
 
-const paramsSchema = z.object({
-  movie_id: z.coerce.number(),
-});
-
-const updateCrewPicksSchema = z.object({
-  movie_ids: z.array(z.number()).max(6),
-});
+dotenv.config();
 
 export async function getMovieData(req: Request, res: Response) {
-  const { movie_id } = paramsSchema.parse(req.params);
+  const { movie_id } = movieParamsSchema.parse(req.params);
 
   const data = await getMovieDataModel(String(movie_id));
 
@@ -36,7 +35,7 @@ export async function getFriendsMovieActivity(req: Request, res: Response) {
     return res.status(200).json([]);
   }
 
-  const { movie_id } = paramsSchema.parse(req.params);
+  const { movie_id } = movieParamsSchema.parse(req.params);
   const activity = await getFriendsMovieActivityModel(
     user_id,
     String(movie_id),
@@ -55,4 +54,63 @@ export async function updateCrewPicks(req: Request, res: Response) {
   return res
     .status(200)
     .json({ success: true, message: "Sélection mise à jour" });
+}
+
+export async function getTopRatedMovies(req: Request, res: Response) {
+  const page = Number(req.query.page) || 1;
+  const language = req.query.language as string || "fr-FR";
+
+  const url = `${process.env.TMDB_URL}/movie/top_rated?language=${language}&page=${page}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      accept: "application/json",
+      Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
+    },
+  });
+
+  const tmdbData = await response.json();
+  const tmdbMovies = tmdbData.results || [];
+
+  const movieIds = tmdbMovies.map((m: any) => m.id);
+  const silverlogRatings = await getMoviesRatingsModel(movieIds);
+  
+  const ratingsMap = new Map(
+    silverlogRatings.map((r: any) => [r.movie_id, { avg: Number(r.avg_rating), count: r.count }])
+  );
+
+  const moviesWithWeightedAvg = tmdbMovies.map((movie: any) => {
+    const silverlog = ratingsMap.get(movie.id);
+    
+    let weightedAvg: number;
+    
+    if (silverlog && silverlog.count > 0) {
+      const tmdbAvg = movie.vote_average;
+      const tmdbCount = movie.vote_count;
+      const silverlogAvg = silverlog.avg / 2;
+      const silverlogCount = silverlog.count;
+      
+      weightedAvg = (
+        (tmdbAvg * tmdbCount) + (silverlogAvg * silverlogCount)
+      ) / (tmdbCount + silverlogCount);
+    } else {
+      weightedAvg = movie.vote_average;
+    }
+
+    return {
+      ...movie,
+      weighted_avg: Math.round(weightedAvg * 10) / 10,
+      silverlog_avg: silverlog ? silverlog.avg / 2 : null,
+      silverlog_count: silverlog ? silverlog.count : 0,
+    };
+  });
+
+  moviesWithWeightedAvg.sort((a: any, b: any) => b.weighted_avg - a.weighted_avg);
+
+  return res.status(200).json({
+    results: moviesWithWeightedAvg,
+    page: tmdbData.page,
+    total_pages: tmdbData.total_pages,
+    total_results: tmdbData.total_results,
+  });
 }

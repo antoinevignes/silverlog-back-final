@@ -1,5 +1,5 @@
-import z from "zod";
 import bcrypt from "bcryptjs";
+import z from "zod";
 import {
   checkUserExists,
   checkUserVerification,
@@ -16,19 +16,9 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 import { getCookieOptions } from "../utils/handle-errors.js";
+import { registerSchema, loginSchema } from "../schemas/index.js";
 
 dotenv.config();
-
-const registerSchema = z.object({
-  username: z.string().trim().min(3),
-  email: z.string().trim().email(),
-  password: z.string().min(6),
-});
-
-const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(6),
-});
 
 // REGISTER
 export async function signUp(req: Request, res: Response) {

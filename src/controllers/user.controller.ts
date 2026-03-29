@@ -1,5 +1,5 @@
-import z from "zod";
 import type { Request, Response } from "express";
+import type { Multer } from "multer";
 import {
   getUserModel,
   updateUsernameModel,
@@ -18,41 +18,24 @@ import {
 } from "../utils/cloudinary.js";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 import { getCookieOptions } from "../utils/handle-errors.js";
+import {
+  passwordChangeSchema,
+  searchQuerySchema,
+  usernameSchema,
+  locationSchema,
+} from "../schemas/index.js";
 
-const passwordSchema = z
-  .object({
-    currentPassword: z
-      .string()
-      .trim()
-      .min(12, "Mot de passe trop court")
-      .max(128, "Mot de passe trop long")
-      .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
-      .regex(/[a-z]/, "Doit contenir au moins une minuscule")
-      .regex(/\d/, "Doit contenir au moins un chiffre")
-      .regex(
-        new RegExp("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?~`]"),
-        "Doit contenir un caractère spécial",
-      )
-      .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
-    newPassword: z
-      .string()
-      .trim()
-      .min(12, "Mot de passe trop court")
-      .max(128, "Mot de passe trop long")
-      .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
-      .regex(/[a-z]/, "Doit contenir au moins une minuscule")
-      .regex(/\d/, "Doit contenir au moins un chiffre")
-      .regex(
-        new RegExp("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?~`]"),
-        "Doit contenir un caractère spécial",
-      )
-      .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
-    confirmPassword: z.string().trim(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["confirmPassword"],
-  });
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  public_id?: string;
+}
 
 // RECUPERER LES INFOS DE L'UTILISATEUR
 export async function getUser(req: Request, res: Response) {
@@ -71,9 +54,7 @@ export async function getUser(req: Request, res: Response) {
 // MODIFIER LE NOM D'UTILISATEUR
 export async function updateUsername(req: Request, res: Response) {
   const user = req.user!;
-  const { username } = z
-    .object({ username: z.string().trim().min(1) })
-    .parse(req.body);
+  const { username } = usernameSchema.parse(req.body);
 
   const exists = await checkUserExists("", username);
   if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
@@ -87,9 +68,7 @@ export async function updateUsername(req: Request, res: Response) {
 // MODIFIER LA LOCALISATION
 export async function updateLocation(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { location } = z
-    .object({ location: z.string().trim() })
-    .parse(req.body);
+  const { location } = locationSchema.parse(req.body);
 
   await updateLocationModel(user_id, location);
 
@@ -102,8 +81,8 @@ export async function updateAvatar(req: Request, res: Response) {
 
   if (!req.file) throw new Error("Aucun fichier reçu");
 
-  const file = req.file as any;
-  const publicId: string = file.filename || file.public_id;
+  const file = req.file as UploadedFile;
+  const publicId: string = file.filename ?? file.public_id ?? "";
   const avatar_path = publicId.split("/").pop()!;
 
   await updateAvatarPathModel(user.id, avatar_path);
@@ -134,8 +113,8 @@ export async function updateBanner(req: Request, res: Response) {
 
   if (!req.file) throw new Error("Aucun fichier reçu");
 
-  const file = req.file as any;
-  const publicId: string = file.filename || file.public_id;
+  const file = req.file as UploadedFile;
+  const publicId: string = file.filename ?? file.public_id ?? "";
   const banner_path = publicId.split("/").pop()!;
 
   await updateBannerPathModel(user.id, banner_path);
@@ -177,7 +156,7 @@ export async function deleteAccount(req: Request, res: Response) {
 
 // RECHERCHER DES UTILISATEURS
 export async function searchUsers(req: Request, res: Response) {
-  const { q } = z.object({ q: z.string().min(1) }).parse(req.query);
+  const { q } = searchQuerySchema.parse(req.query);
 
   const users = await searchUsersModel(q);
 
@@ -186,7 +165,7 @@ export async function searchUsers(req: Request, res: Response) {
 
 export async function updatePassword(req: Request, res: Response) {
   const user = req.user!;
-  const parsed = passwordSchema.safeParse(req.body);
+  const parsed = passwordChangeSchema.safeParse(req.body);
 
   if (!parsed.success) {
     return res
