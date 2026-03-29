@@ -13,30 +13,15 @@ import {
   updateListOrderModel,
   removeMovieFromListModel,
 } from "../models/list.model.js";
-import z from "zod";
 import { upsertMovieModel } from "../models/movie.model.js";
-
-// TYPES
-const listSchema = z.object({
-  title: z.string().min(1, "Titre requis"),
-  description: z.string().nullable(),
-  is_public: z.boolean("La liste doit être publique ou privée"),
-});
-
-export type List = z.infer<typeof listSchema>;
-
-const listParamsSchema = z.object({
-  list_id: z.coerce.number(),
-});
-
-const toggleMovieSchema = z.object({
-  movie_id: z.coerce.number(),
-  title: z.string(),
-  release_date: z.string().nullable(),
-  poster_path: z.string().nullable(),
-  backdrop_path: z.string().nullable(),
-  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
-});
+import {
+  listSchema,
+  listParamsSchema,
+  toggleMovieSchema,
+  listUpdateSchema,
+  listReorderSchema,
+  listAndMovieParamsSchema,
+} from "../schemas/index.js";
 
 // AJOUTER FILM A UNE LISTE
 export async function toggleMovieInList(req: Request, res: Response) {
@@ -162,13 +147,7 @@ export async function updateList(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { list_id } = listParamsSchema.parse(req.params);
 
-  const updates = z
-    .object({
-      title: z.string().min(1).optional(),
-      description: z.string().nullable().optional(),
-      is_public: z.boolean().optional(),
-    })
-    .parse(req.body);
+  const updates = listUpdateSchema.parse(req.body);
 
   const list = await findListById(list_id);
 
@@ -188,12 +167,7 @@ export async function updateList(req: Request, res: Response) {
 // SUPPRIMER UN FILM D'UNE LISTE (DÉDIÉ)
 export async function removeMovieFromList(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { list_id, movie_id } = z
-    .object({
-      list_id: z.coerce.number(),
-      movie_id: z.coerce.number(),
-    })
-    .parse(req.params);
+  const { list_id, movie_id } = listAndMovieParamsSchema.parse(req.params);
 
   await removeMovieFromListModel(user_id, list_id, movie_id);
 
@@ -205,11 +179,7 @@ export async function updateListOrder(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { list_id } = listParamsSchema.parse(req.params);
 
-  const { movie_ids } = z
-    .object({
-      movie_ids: z.array(z.coerce.number()),
-    })
-    .parse(req.body);
+  const { movie_ids } = listReorderSchema.parse(req.body);
 
   await updateListOrderModel(user_id, Number(list_id), movie_ids);
 

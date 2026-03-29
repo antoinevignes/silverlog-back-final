@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import z from "zod";
 import {
   createReviewModel,
   deleteReviewModel,
@@ -7,20 +6,9 @@ import {
   getReviewsModel,
   likeReviewModel,
   getRecentReviewsModel,
+  getPopularReviewsModel,
 } from "../models/review.model.js";
-
-const reviewSchema = z.object({
-  movie_id: z.coerce.number(),
-  content: z.string().min(1, "Contenu requis").max(140, "Contenu trop long"),
-});
-
-const movieParamSchema = z.object({
-  movie_id: z.coerce.number(),
-});
-
-const reviewParamSchema = z.object({
-  review_id: z.coerce.number(),
-});
+import { reviewSchema, reviewMovieParamSchema, reviewParamSchema } from "../schemas/index.js";
 
 export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
@@ -37,7 +25,7 @@ export async function createReview(req: Request, res: Response) {
 
 export async function getReview(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = reviewMovieParamSchema.parse(req.params);
 
   const review = await getReviewModel(String(movie_id), user_id);
 
@@ -50,7 +38,7 @@ export async function getReview(req: Request, res: Response) {
 
 export async function getReviewsByMovie(req: Request, res: Response) {
   const user_id = req.user?.id ?? null;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = reviewMovieParamSchema.parse(req.params);
 
   const reviews = await getReviewsModel(user_id, String(movie_id));
 
@@ -81,5 +69,11 @@ export async function deleteReview(req: Request, res: Response) {
 
 export async function getRecentReviews(req: Request, res: Response) {
   const reviews = await getRecentReviewsModel();
+  return res.status(200).json(reviews);
+}
+
+export async function getPopularReviews(req: Request, res: Response) {
+  const limit = Number(req.query.limit) || 10;
+  const reviews = await getPopularReviewsModel(limit);
   return res.status(200).json(reviews);
 }

@@ -1,6 +1,11 @@
-import type { List as ListPayload } from "../controllers/list.controller.js";
-import type { List, ListMovie } from "../types/db.js";
+import type { List } from "../types/db.js";
 import sql from "../db.js";
+
+interface ListPayload {
+  title: string;
+  description: string | null;
+  is_public: boolean;
+}
 
 // AJOUTER FILM A UNE LISTE
 export async function toggleMovieInListModel(

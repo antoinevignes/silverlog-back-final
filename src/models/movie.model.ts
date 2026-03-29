@@ -54,7 +54,10 @@ export async function getCrewPicksModel() {
   return rows;
 }
 
-export async function updateCrewPicksModel(movieIds: number[], adminId: string) {
+export async function updateCrewPicksModel(
+  movieIds: number[],
+  adminId: string,
+) {
   return await sql.begin(async (t) => {
     const tx = t as unknown as typeof sql;
     await tx`DELETE FROM crew_picks`;
@@ -94,4 +97,21 @@ export async function getFriendsMovieActivityModel(
     AND um.rating IS NOT NULL
     ORDER BY created_at DESC;
   `;
+}
+
+// RECUPERER LES RATINGS SILVERLOG POUR PLUSIEURS FILMS
+export async function getMoviesRatingsModel(movie_ids: number[]) {
+  if (movie_ids.length === 0) return [];
+
+  const rows = await sql`
+    SELECT 
+      movie_id,
+      AVG(rating)::numeric(10,2) as avg_rating,
+      COUNT(*)::int as count
+    FROM user_movies
+    WHERE movie_id IN ${sql(movie_ids)}
+    AND rating IS NOT NULL
+    GROUP BY movie_id
+  `;
+  return rows;
 }
