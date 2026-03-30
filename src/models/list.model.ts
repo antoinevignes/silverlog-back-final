@@ -120,18 +120,19 @@ export async function getListDetailsModel(
         ) AS is_saved,
         (
           SELECT COALESCE(jsonb_agg(jsonb_build_object(
-            'id', m.movie_id, 
+            'id', m.movie_id,
             'title', m.title,
             'poster_path', m.poster_path,
             'backdrop_path', m.backdrop_path,
             'release_date', m.release_date,
             'genres', m.genres,
-            'seen_at', um.seen_at
-          ) ORDER BY lm.position ASC, lm.added_at ASC), '[]') 
+            'seen_at', um.seen_at,
+            'added_at', lm.added_at
+          ) ORDER BY lm.position ASC, lm.added_at ASC), '[]')
           FROM list_movies lm
           JOIN movies m ON m.movie_id = lm.movie_id
           LEFT JOIN user_movies um ON um.movie_id = lm.movie_id AND um.user_id = ${user_id}
-          WHERE lm.list_id = l.id 
+          WHERE lm.list_id = l.id
         ) AS movies
       FROM lists l
       LEFT JOIN users u ON u.id = l.user_id
