@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
 import {
   getAdminStatsModel,
   getAdminUsersModel,
@@ -8,14 +7,7 @@ import {
   getAdminReviewsModel,
   deleteAdminReviewModel,
 } from "../models/admin.model.js";
-
-const updateRoleSchema = z.object({
-  role: z.enum(["user", "admin"]),
-});
-
-const deleteReviewParams = z.object({
-  reviewId: z.coerce.number(),
-});
+import { updateRoleSchema, deleteReviewParamsSchema } from "../schemas/index.js";
 
 // GET STATS
 export async function getStats(req: Request, res: Response) {
@@ -72,7 +64,7 @@ export async function getReviews(req: Request, res: Response) {
 // DELETE REVIEW
 
 export async function deleteReview(req: Request, res: Response) {
-  const { reviewId } = deleteReviewParams.parse(req.params);
+  const { reviewId } = deleteReviewParamsSchema.parse(req.params);
   await deleteAdminReviewModel(reviewId);
   return res.status(200).json({ success: true, message: "Avis supprimé" });
 }

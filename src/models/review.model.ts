@@ -120,3 +120,40 @@ export async function getRecentReviewsModel() {
 
   return rows;
 }
+
+export async function getPopularReviewsModel(limit: number = 10) {
+  const rows = await sql`
+    SELECT 
+      r.id,
+      r.content,
+      r.created_at,
+      r.user_id,
+      u.username,
+      u.avatar_path,
+      m.movie_id,
+      m.title as movie_title,
+      m.poster_path as movie_poster_path,
+      um.rating,
+      COUNT(l.*)::int as like_count
+    FROM reviews r
+    JOIN users u ON u.id = r.user_id
+    JOIN movies m ON m.movie_id = r.movie_id
+    LEFT JOIN user_movies um ON um.user_id = r.user_id AND um.movie_id = r.movie_id
+    LEFT JOIN review_likes l ON r.id = l.review_id
+    WHERE r.content IS NOT NULL AND r.content != ''
+    GROUP BY 
+      r.id, 
+      u.username, 
+      u.avatar_path,
+      m.movie_id,
+      m.title,
+      m.poster_path,
+      um.rating
+    ORDER BY 
+      COUNT(l.*) DESC,
+      r.created_at DESC
+    LIMIT ${limit};
+  `;
+
+  return rows;
+}

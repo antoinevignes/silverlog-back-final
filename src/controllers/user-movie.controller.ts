@@ -7,34 +7,11 @@ import {
   upsertRatingWithMovieModel,
   removeFromDiarylModel,
 } from "../models/user-movie.model.js";
-
-import z from "zod";
-
-const movieParamSchema = z.object({
-  movie_id: z.coerce.number(),
-});
-
-const seenMovieSchema = z.object({
-  date: z.any().optional(),
-  title: z.string(),
-  release_date: z.string().nullable(),
-  poster_path: z.string().nullable(),
-  backdrop_path: z.string().nullable(),
-  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
-});
-
-const ratingMovieSchema = z.object({
-  rating: z.number(),
-  title: z.string(),
-  release_date: z.string().nullable(),
-  poster_path: z.string().nullable(),
-  backdrop_path: z.string().nullable(),
-  genres: z.array(z.object({ id: z.number(), name: z.string() })).nullable(),
-});
+import { userMovieParamSchema, seenMovieSchema, ratingMovieSchema } from "../schemas/index.js";
 
 // RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = userMovieParamSchema.parse(req.params);
 
   const user_id = req.user?.id;
 
@@ -54,7 +31,7 @@ export async function getState(req: Request, res: Response) {
 // AJOUTER OU MODIFIER LA NOTE D'UN FILM
 export async function upsertRating(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = userMovieParamSchema.parse(req.params);
   const movieData = ratingMovieSchema.parse(req.body);
 
   const state = await upsertRatingWithMovieModel(
@@ -73,7 +50,7 @@ export async function upsertRating(req: Request, res: Response) {
 // SUPPRIMER LA NOTE D'UN FILM
 export async function deleteRating(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = userMovieParamSchema.parse(req.params);
 
   await deleteRatingModel(user_id, String(movie_id));
 
@@ -83,13 +60,13 @@ export async function deleteRating(req: Request, res: Response) {
 // MODIFIER LA DATE DE VISIONNAGE D'UN FILM
 export async function updateSeenDate(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = userMovieParamSchema.parse(req.params);
   const movieData = seenMovieSchema.parse(req.body);
 
   await updateSeenDateWithMovieModel(
     user_id,
     movie_id,
-    movieData.date,
+    movieData.date ? new Date(movieData.date) : null,
     movieData.title ? movieData : undefined,
   );
 
@@ -108,7 +85,7 @@ export async function getSeenMovies(req: Request, res: Response) {
 // SUPPRIMER UN FILM DU JOURNAL
 export async function removeFromDiary(req: Request, res: Response) {
   const user_id = req.user!.id;
-  const { movie_id } = movieParamSchema.parse(req.params);
+  const { movie_id } = userMovieParamSchema.parse(req.params);
 
   await removeFromDiarylModel(user_id, movie_id);
 

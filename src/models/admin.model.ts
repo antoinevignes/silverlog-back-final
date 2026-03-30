@@ -4,7 +4,8 @@ export async function getAdminStatsModel() {
   const [users] = await sql`SELECT COUNT(*)::int as count FROM users`;
   const [reviews] = await sql`SELECT COUNT(*)::int as count FROM reviews`;
   const [movies] = await sql`SELECT COUNT(*)::int as count FROM user_movies`;
-  const [lists] = await sql`SELECT COUNT(*)::int as count FROM lists WHERE list_type = 'custom'`;
+  const [lists] =
+    await sql`SELECT COUNT(*)::int as count FROM lists WHERE list_type = 'custom'`;
 
   return {
     totalUsers: users?.count || 0,
@@ -22,14 +23,16 @@ export async function getAdminUsersModel() {
   `;
 }
 
-export async function updateUserRoleModel(userId: string, role: "user" | "admin") {
+export async function updateUserRoleModel(
+  userId: string,
+  role: "user" | "admin",
+) {
   await sql`
     UPDATE users SET role = ${role} WHERE id = ${userId}
   `;
 }
 
 export async function deleteUserModel(userId: string) {
-  // Cascades to user_movies, reviews, lists, etc.
   await sql`DELETE FROM users WHERE id = ${userId}`;
 }
 

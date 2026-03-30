@@ -106,7 +106,7 @@ export async function deleteRatingModel(user_id: string, movie_id: string) {
 export async function updateSeenDateWithMovieModel(
   user_id: string,
   movie_id: number,
-  date: Date,
+  date: Date | null,
   movieData?: {
     title: string;
     release_date: string | null;
@@ -140,7 +140,7 @@ export async function updateSeenDateWithMovieModel(
 
     await tx`
       INSERT INTO user_movies (user_id, movie_id, seen, seen_at)
-      VALUES (${user_id}, ${movie_id}, true, ${date})
+      VALUES (${user_id}, ${movie_id}, true, ${date ?? null})
       ON CONFLICT (user_id, movie_id)
       DO UPDATE SET
         seen_at = EXCLUDED.seen_at,
