@@ -23,6 +23,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
+    "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -32,9 +33,11 @@
     "multer-storage-cloudinary": "^4.0.0",
     "postgres": "^3.4.8",
     "resend": "^6.8.0",
+    "socket.io": "^4.8.3",
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@types/cookie": "^0.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
