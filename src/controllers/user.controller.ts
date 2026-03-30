@@ -9,6 +9,7 @@ import {
   deleteUserModel,
   searchUsersModel,
   updatePasswordModel,
+  getActiveUsersModel,
 } from "../models/user.model.js";
 import { checkUserExists, signInModel } from "../models/auth.model.js";
 import bcrypt from "bcryptjs";
@@ -191,4 +192,11 @@ export async function updatePassword(req: Request, res: Response) {
   await updatePasswordModel(user.id, hashedPassword);
 
   return res.status(200).json({ success: true });
+}
+
+// UTILISATEURS LES PLUS ACTIFS
+export async function getActiveUsers(_req: Request, res: Response) {
+  const users = await getActiveUsersModel(6);
+
+  return res.status(200).json(users);
 }

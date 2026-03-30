@@ -170,3 +170,30 @@ export async function searchUsersModel(query: string) {
   `;
   return rows;
 }
+
+// UTILISATEURS LES PLUS ACTIFS
+export async function getActiveUsersModel(limit: number = 6) {
+  const rows = await sql`
+    SELECT 
+      u.id,
+      u.username,
+      u.avatar_path,
+      COALESCE(r.reviews_count, 0) as reviews_count,
+      COALESCE(m.viewed_count, 0) as watched_count
+    FROM users u
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) as reviews_count
+      FROM reviews
+      GROUP BY user_id
+    ) r ON r.user_id = u.id
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) as viewed_count
+      FROM user_movies
+      GROUP BY user_id
+    ) m ON m.user_id = u.id
+    WHERE (r.reviews_count > 0 OR m.viewed_count > 0)
+    ORDER BY (COALESCE(r.reviews_count, 0) + COALESCE(m.viewed_count, 0)) DESC
+    LIMIT ${limit}
+  `;
+  return rows;
+}

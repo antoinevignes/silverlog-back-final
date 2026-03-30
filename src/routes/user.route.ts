@@ -12,11 +12,13 @@ import {
   getUser,
   searchUsers,
   updatePassword,
+  getActiveUsers,
 } from "../controllers/user.controller.js";
 
 const userRoute = Router();
 
 userRoute.get("/search", optionalAuth, searchUsers);
+userRoute.get("/active", getActiveUsers);
 userRoute.patch("/username", requireAuth, updateUsername);
 userRoute.patch("/location", requireAuth, updateLocation);
 userRoute.patch("/avatar", requireAuth, upload.single("avatar"), updateAvatar);
