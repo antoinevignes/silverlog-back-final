@@ -1,9 +1,11 @@
 import express from "express";
+import { createServer } from "http";
 import dotenv from "dotenv";
 import router from "./routes/index.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./utils/handle-errors.js";
+import { initSocket } from "./socket.js";
 
 dotenv.config();
 const { PORT } = process.env;
@@ -23,6 +25,9 @@ app.use(
 app.use(router);
 app.use(errorHandler);
 
-app.listen(PORT || 8000, () =>
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT || 8000, () =>
   console.log(`Listening on http://localhost:${PORT}`),
 );

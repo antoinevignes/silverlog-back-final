@@ -89,3 +89,15 @@ export interface RefreshToken {
   expires_at: Date;
   created_at: Date;
 }
+
+export interface Notification {
+  id: number;
+  recipient_id: number;
+  sender_id: number;
+  type: "review" | "recommendation";
+  movie_id: number;
+  review_id: number | null;
+  message: string | null;
+  is_read: boolean;
+  created_at: Date;
+}

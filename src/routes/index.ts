@@ -9,6 +9,8 @@ import reviewRoute from "./review.route.js";
 import sql from "../db.js";
 import listRoute from "./list.route.js";
 import adminRoute from "./admin.route.js";
+import notificationRoute from "./notification.route.js";
+import recommendationRoute from "./recommendation.route.js";
 
 const router = Router();
 
@@ -21,6 +23,8 @@ router.use("/user_movie", userMovieRoute);
 router.use("/reviews", reviewRoute);
 router.use("/lists", listRoute);
 router.use("/admin", adminRoute);
+router.use("/notifications", notificationRoute);
+router.use("/recommendation", recommendationRoute);
 
 router.get("/health", async (req, res) => {
   try {
