@@ -11,20 +11,11 @@ import {
 import { createNotificationModel } from "../models/notification.model.js";
 import { getIO } from "../socket.js";
 import sql from "../db.js";
-
-const reviewSchema = z.object({
-  movie_id: z.coerce.number(),
-  content: z.string().min(1, "Contenu requis").max(140, "Contenu trop long"),
-});
-
-const movieParamSchema = z.object({
-  movie_id: z.coerce.number(),
-});
-
-const reviewParamSchema = z.object({
-  review_id: z.coerce.number(),
-});
-import { reviewSchema, reviewMovieParamSchema, reviewParamSchema } from "../schemas/index.js";
+import {
+  reviewSchema,
+  reviewMovieParamSchema,
+  reviewParamSchema,
+} from "../schemas/index.js";
 
 export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
