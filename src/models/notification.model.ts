@@ -4,8 +4,8 @@ export interface Notification {
   id: number;
   recipient_id: number;
   sender_id: number;
-  type: "review" | "recommendation";
-  movie_id: number;
+  type: "review" | "recommendation" | "follow";
+  movie_id: number | null;
   review_id: number | null;
   message: string | null;
   is_read: boolean;
@@ -15,15 +15,15 @@ export interface Notification {
 export interface NotificationWithDetails extends Notification {
   sender_username: string;
   sender_avatar: string | null;
-  movie_title: string;
+  movie_title: string | null;
   movie_poster: string | null;
 }
 
 export async function createNotificationModel(
   recipient_id: string | number,
   sender_id: string | number,
-  type: "review" | "recommendation",
-  movie_id: number,
+  type: "review" | "recommendation" | "follow",
+  movie_id?: number | null,
   review_id?: string | number | null,
   message?: string | null,
 ) {
@@ -31,7 +31,7 @@ export async function createNotificationModel(
     INSERT INTO notifications (
       recipient_id, sender_id, type, movie_id, review_id, message
     ) VALUES (
-      ${recipient_id}, ${sender_id}, ${type}, ${movie_id}, ${review_id ?? null}, ${message ?? null}
+      ${recipient_id}, ${sender_id}, ${type}, ${movie_id ?? null}, ${review_id ?? null}, ${message ?? null}
     )
     RETURNING *
   `;
@@ -48,7 +48,7 @@ export async function getNotificationsModel(user_id: string, limit = 30) {
       m.poster_path AS movie_poster
     FROM notifications n
     JOIN users u ON u.id = n.sender_id
-    JOIN movies m ON m.movie_id = n.movie_id
+    LEFT JOIN movies m ON m.movie_id = n.movie_id
     WHERE n.recipient_id = ${user_id}
     ORDER BY n.created_at DESC
     LIMIT ${limit}
