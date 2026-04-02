@@ -19,7 +19,7 @@ export const seenMovieSchema = z.object({
 });
 
 export const ratingMovieSchema = z.object({
-  rating: z.coerce.number().min(0).max(10),
+  rating: z.coerce.number().min(0).max(20),
   title: z.string(),
   release_date: z.string().nullable(),
   poster_path: z.string().nullable(),
