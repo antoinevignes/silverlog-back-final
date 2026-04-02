@@ -20,7 +20,7 @@ import {
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 import { getCookieOptions } from "../utils/handle-errors.js";
 import {
-  passwordChangeSchema,
+  passwordSchema,
   searchQuerySchema,
   usernameSchema,
   locationSchema,
@@ -166,7 +166,7 @@ export async function searchUsers(req: Request, res: Response) {
 
 export async function updatePassword(req: Request, res: Response) {
   const user = req.user!;
-  const parsed = passwordChangeSchema.safeParse(req.body);
+  const parsed = passwordSchema.safeParse(req.body);
 
   if (!parsed.success) {
     return res

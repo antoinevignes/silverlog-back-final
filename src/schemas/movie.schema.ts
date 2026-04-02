@@ -1,10 +1,5 @@
 import z from "zod";
 
-const genreSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
-
 export const movieParamsSchema = z.object({
   movie_id: z.coerce.number(),
 });

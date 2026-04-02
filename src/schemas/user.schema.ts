@@ -1,6 +1,18 @@
 import z from "zod";
 
-const passwordSchema = z
+export const searchQuerySchema = z.object({
+  q: z.string().min(1),
+});
+
+export const usernameSchema = z.object({
+  username: z.string().trim().min(1),
+});
+
+export const locationSchema = z.object({
+  location: z.string().trim(),
+});
+
+export const passwordSchema = z
   .object({
     currentPassword: z
       .string()
@@ -34,20 +46,6 @@ const passwordSchema = z
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
   });
-
-export const searchQuerySchema = z.object({
-  q: z.string().min(1),
-});
-
-export const usernameSchema = z.object({
-  username: z.string().trim().min(1),
-});
-
-export const locationSchema = z.object({
-  location: z.string().trim(),
-});
-
-export const passwordChangeSchema = passwordSchema;
 
 export type PasswordChangeInput = z.infer<typeof passwordSchema>;
 export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
