@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["https://silverlog-front.onrender.com", "http://localhost:3000"],
+    origin: ["https://silverlog.tech", "http://localhost:3000"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),

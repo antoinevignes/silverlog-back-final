@@ -9,7 +9,7 @@ let io: Server;
 export function initSocket(httpServer: HttpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: ["https://silverlog-front.onrender.com", "http://localhost:3000"],
+      origin: ["https://silverlog.tech", "http://localhost:3000"],
       credentials: true,
     },
   });
