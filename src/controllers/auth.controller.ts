@@ -45,7 +45,7 @@ export async function signUp(req: Request, res: Response) {
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
-    from: "Silverlog <onboarding@resend.dev>",
+    from: "Silverlog <onboarding@silverlog.tech>",
     to: [email],
     subject: "Silverlog - Activer votre compte",
     html: generateEmail(verificationToken),
