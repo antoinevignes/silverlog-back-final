@@ -16,7 +16,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["https://silverlog.tech", "http://localhost:3000"],
+    origin: [
+      "https://silverlog.tech",
+      "https://www.silverlog.tech",
+      "http://localhost:3000",
+    ],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
