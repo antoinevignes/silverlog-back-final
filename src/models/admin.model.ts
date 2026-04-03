@@ -1,5 +1,6 @@
 import sql from "../db.js";
 
+// RECUPERER LES STATISTIQUES DE L'ADMIN
 export async function getAdminStatsModel() {
   const [users] = await sql`SELECT COUNT(*)::int as count FROM users`;
   const [reviews] = await sql`SELECT COUNT(*)::int as count FROM reviews`;
@@ -15,6 +16,7 @@ export async function getAdminStatsModel() {
   };
 }
 
+// RECUPERER LES UTILISATEURS
 export async function getAdminUsersModel() {
   return await sql`
     SELECT id, username, email, role, created_at, (verification_token IS NULL) as verified
@@ -23,6 +25,7 @@ export async function getAdminUsersModel() {
   `;
 }
 
+// METTRE A JOUR LE ROLE D'UN UTILISATEUR
 export async function updateUserRoleModel(
   userId: string,
   role: "user" | "admin",
@@ -32,10 +35,12 @@ export async function updateUserRoleModel(
   `;
 }
 
+// SUPPRIMER UN UTILISATEUR
 export async function deleteUserModel(userId: string) {
   await sql`DELETE FROM users WHERE id = ${userId}`;
 }
 
+// RECUPERER LES AVIS
 export async function getAdminReviewsModel() {
   return await sql`
     SELECT 
@@ -57,6 +62,7 @@ export async function getAdminReviewsModel() {
   `;
 }
 
+// SUPPRIMER UN AVIS
 export async function deleteAdminReviewModel(reviewId: number) {
   await sql`DELETE FROM reviews WHERE id = ${reviewId}`;
 }

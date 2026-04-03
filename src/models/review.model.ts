@@ -1,6 +1,7 @@
 import sql from "../db.js";
 import type { Review, ReviewWithDetails } from "../types/db.js";
 
+// CREER UN AVIS
 export async function createReviewModel(
   user_id: string,
   movie_id: number,
@@ -26,6 +27,7 @@ export async function createReviewModel(
   return rows[0] || null;
 }
 
+// RECUPERER UN AVIS
 export async function getReviewModel(movie_id: string, user_id: string) {
   const rows = await sql<Review[]>`
     SELECT * FROM reviews
@@ -36,6 +38,7 @@ export async function getReviewModel(movie_id: string, user_id: string) {
   return rows[0] || null;
 }
 
+// RECUPERER LES AVIS
 export async function getReviewsModel(
   user_id: string | null,
   movie_id: string,
@@ -69,6 +72,7 @@ export async function getReviewsModel(
   return rows;
 }
 
+// AIMER UN AVIS
 export async function likeReviewModel(review_id: string, user_id: string) {
   return await sql`
     WITH deleted AS (
@@ -84,6 +88,7 @@ export async function likeReviewModel(review_id: string, user_id: string) {
   `;
 }
 
+// SUPPRIMER UN AVIS
 export async function deleteReviewModel(review_id: string, user_id: string) {
   return await sql`
     DELETE FROM reviews
@@ -92,6 +97,7 @@ export async function deleteReviewModel(review_id: string, user_id: string) {
   `;
 }
 
+// RECUPERER LES DERNIERS AVIS
 export async function getRecentReviewsModel() {
   const rows = await sql<ReviewWithDetails[]>`
     SELECT 
@@ -121,6 +127,7 @@ export async function getRecentReviewsModel() {
   return rows;
 }
 
+// RECUPERER LES AVIS LES PLUS POPULAIRES
 export async function getPopularReviewsModel(limit: number = 10) {
   const rows = await sql`
     SELECT 

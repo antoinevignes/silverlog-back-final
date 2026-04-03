@@ -17,6 +17,7 @@ import {
   reviewParamSchema,
 } from "../schemas/index.js";
 
+// CREER UN AVIS
 export async function createReview(req: Request, res: Response) {
   const user_id = req.user!.id;
 
@@ -68,6 +69,7 @@ export async function createReview(req: Request, res: Response) {
   });
 }
 
+// RECUPERER UN AVIS
 export async function getReview(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { movie_id } = reviewMovieParamSchema.parse(req.params);
@@ -81,6 +83,7 @@ export async function getReview(req: Request, res: Response) {
   return res.status(200).json(review);
 }
 
+// RECUPERER LES AVIS D'UN FILM
 export async function getReviewsByMovie(req: Request, res: Response) {
   const user_id = req.user?.id ?? null;
   const { movie_id } = reviewMovieParamSchema.parse(req.params);
@@ -94,6 +97,7 @@ export async function getReviewsByMovie(req: Request, res: Response) {
   return res.status(200).json(reviews);
 }
 
+// AIMER UN AVIS
 export async function likeReview(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { review_id } = reviewParamSchema.parse(req.params);
@@ -103,6 +107,7 @@ export async function likeReview(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// SUPPRIMER UN AVIS
 export async function deleteReview(req: Request, res: Response) {
   const user_id = req.user!.id;
   const { review_id } = reviewParamSchema.parse(req.params);
@@ -112,11 +117,13 @@ export async function deleteReview(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// RECUPERER LES AVIS RECENTS
 export async function getRecentReviews(req: Request, res: Response) {
   const reviews = await getRecentReviewsModel();
   return res.status(200).json(reviews);
 }
 
+// RECUPERER LES AVIS LES PLUS POPULAIRES
 export async function getPopularReviews(req: Request, res: Response) {
   const limit = Number(req.query.limit) || 10;
   const reviews = await getPopularReviewsModel(limit);

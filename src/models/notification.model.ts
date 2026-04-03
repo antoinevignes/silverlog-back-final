@@ -19,6 +19,7 @@ export interface NotificationWithDetails extends Notification {
   movie_poster: string | null;
 }
 
+// CREER UNE NOTIFICATION
 export async function createNotificationModel(
   recipient_id: string | number,
   sender_id: string | number,
@@ -38,6 +39,7 @@ export async function createNotificationModel(
   return rows[0] || null;
 }
 
+// RECUPERER LES NOTIFICATIONS
 export async function getNotificationsModel(user_id: string, limit = 30) {
   const rows = await sql<NotificationWithDetails[]>`
     SELECT
@@ -56,6 +58,7 @@ export async function getNotificationsModel(user_id: string, limit = 30) {
   return rows;
 }
 
+// RECUPERER LE NOMBRE DE NOTIFICATIONS NON LUES
 export async function getUnreadCountModel(user_id: string) {
   const rows = await sql<{ count: number }[]>`
     SELECT COUNT(*)::int AS count
@@ -66,7 +69,11 @@ export async function getUnreadCountModel(user_id: string) {
   return rows[0]?.count ?? 0;
 }
 
-export async function markAsReadModel(notification_id: number, user_id: string) {
+// MARQUER UNE NOTIFICATION COMME LUE
+export async function markAsReadModel(
+  notification_id: number,
+  user_id: string,
+) {
   await sql`
     UPDATE notifications
     SET is_read = TRUE
@@ -75,6 +82,7 @@ export async function markAsReadModel(notification_id: number, user_id: string) 
   `;
 }
 
+// MARQUER TOUTES LES NOTIFICATIONS COMME LUES
 export async function markAllAsReadModel(user_id: string) {
   await sql`
     UPDATE notifications

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// PROXY TMDB
 export async function proxyTMDB(req: Request, res: Response) {
   let endpoint = req.params.splat;
 
@@ -13,7 +14,12 @@ export async function proxyTMDB(req: Request, res: Response) {
   const queryString = Object.entries(req.query)
     .map(([key, value]) => {
       if (Array.isArray(value)) {
-        return value.map((v) => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`).join("&");
+        return value
+          .map(
+            (v) =>
+              `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`,
+          )
+          .join("&");
       }
       return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
     })

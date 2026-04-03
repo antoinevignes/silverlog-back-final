@@ -15,6 +15,7 @@ declare module "express-serve-static-core" {
   }
 }
 
+// Middelware authentification
 export async function requireAuth(
   req: Request,
   res: Response,
@@ -44,6 +45,7 @@ export async function requireAuth(
   }
 }
 
+// Middelware admin
 export async function requireAdmin(
   req: Request,
   res: Response,
@@ -52,9 +54,13 @@ export async function requireAdmin(
   if (req.user && req.user.role === "admin") {
     next();
   } else {
-    return res.status(403).json({ error: "Accès refusé. Droits administrateur requis." });
+    return res
+      .status(403)
+      .json({ error: "Accès refusé. Droits administrateur requis." });
   }
 }
+
+// Middelware authentification optionnelle
 export async function optionalAuth(
   req: Request,
   res: Response,
@@ -94,6 +100,7 @@ export async function optionalAuth(
   }
 }
 
+// Rafraichir le token
 async function refreshAccessToken(
   req: Request,
   res: Response,

@@ -1,5 +1,6 @@
 import sql from "../db.js";
 
+// METTRE A JOUR LES INFOS D'UN FILM
 export async function upsertMovieModel(
   movie_id: number,
   title: string,
@@ -27,6 +28,7 @@ export async function upsertMovieModel(
   `;
 }
 
+// RECUPERER LES INFOS D'UN FILM
 export async function getMovieDataModel(movie_id: string) {
   const rows = await sql<{ movie_avg: string; rating_count: string }[]>`
     SELECT 
@@ -38,6 +40,7 @@ export async function getMovieDataModel(movie_id: string) {
   return rows[0] || null;
 }
 
+// RECUPERER LES FILMS CHOISIS PAR L'EQUIPE
 export async function getCrewPicksModel() {
   const rows = await sql`
     SELECT 
@@ -54,6 +57,7 @@ export async function getCrewPicksModel() {
   return rows;
 }
 
+// METTRE A JOUR LES FILMS CHOISIS PAR L'EQUIPE
 export async function updateCrewPicksModel(
   movieIds: number[],
   adminId: string,

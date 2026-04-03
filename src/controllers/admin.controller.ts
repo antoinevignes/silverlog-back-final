@@ -7,7 +7,10 @@ import {
   getAdminReviewsModel,
   deleteAdminReviewModel,
 } from "../models/admin.model.js";
-import { updateRoleSchema, deleteReviewParamsSchema } from "../schemas/index.js";
+import {
+  updateRoleSchema,
+  deleteReviewParamsSchema,
+} from "../schemas/index.js";
 
 // GET STATS
 export async function getStats(req: Request, res: Response) {
@@ -62,7 +65,6 @@ export async function getReviews(req: Request, res: Response) {
 }
 
 // DELETE REVIEW
-
 export async function deleteReview(req: Request, res: Response) {
   const { reviewId } = deleteReviewParamsSchema.parse(req.params);
   await deleteAdminReviewModel(reviewId);

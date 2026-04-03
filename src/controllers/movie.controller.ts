@@ -7,13 +7,11 @@ import {
   getMoviesRatingsModel,
 } from "../models/movie.model.js";
 import dotenv from "dotenv";
-import {
-  movieParamsSchema,
-  updateCrewPicksSchema,
-} from "../schemas/index.js";
+import { movieParamsSchema, updateCrewPicksSchema } from "../schemas/index.js";
 
 dotenv.config();
 
+// RECUPERER LES DONNEES D'UN FILM
 export async function getMovieData(req: Request, res: Response) {
   const { movie_id } = movieParamsSchema.parse(req.params);
 
@@ -22,6 +20,7 @@ export async function getMovieData(req: Request, res: Response) {
   return res.status(200).json(data);
 }
 
+// RECUPERER LES FILMS SELECTIONNES PAR L'EQUIPE
 export async function getCrewPicks(req: Request, res: Response) {
   const picks = await getCrewPicksModel();
   return res.status(200).json(picks);
@@ -43,6 +42,7 @@ export async function getFriendsMovieActivity(req: Request, res: Response) {
   return res.status(200).json(activity);
 }
 
+// METTRE A JOUR LES FILMS SELECTIONNES PAR L'EQUIPE
 export async function updateCrewPicks(req: Request, res: Response) {
   const adminId = req.user?.id;
   if (!adminId) return res.status(401).json({ error: "Non autorisé" });
@@ -56,12 +56,13 @@ export async function updateCrewPicks(req: Request, res: Response) {
     .json({ success: true, message: "Sélection mise à jour" });
 }
 
+// RECUPERER LES FILMS LES MIEUX NOTES
 export async function getTopRatedMovies(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
-  const language = req.query.language as string || "fr-FR";
+  const language = (req.query.language as string) || "fr-FR";
 
   const url = `${process.env.TMDB_URL}/movie/top_rated?language=${language}&page=${page}`;
-  
+
   const response = await fetch(url, {
     headers: {
       accept: "application/json",
@@ -74,25 +75,28 @@ export async function getTopRatedMovies(req: Request, res: Response) {
 
   const movieIds = tmdbMovies.map((m: any) => m.id);
   const silverlogRatings = await getMoviesRatingsModel(movieIds);
-  
+
   const ratingsMap = new Map(
-    silverlogRatings.map((r: any) => [r.movie_id, { avg: Number(r.avg_rating), count: r.count }])
+    silverlogRatings.map((r: any) => [
+      r.movie_id,
+      { avg: Number(r.avg_rating), count: r.count },
+    ]),
   );
 
   const moviesWithWeightedAvg = tmdbMovies.map((movie: any) => {
     const silverlog = ratingsMap.get(movie.id);
-    
+
     let weightedAvg: number;
-    
+
     if (silverlog && silverlog.count > 0) {
       const tmdbAvg = movie.vote_average;
       const tmdbCount = movie.vote_count;
       const silverlogAvg = silverlog.avg / 2;
       const silverlogCount = silverlog.count;
-      
-      weightedAvg = (
-        (tmdbAvg * tmdbCount) + (silverlogAvg * silverlogCount)
-      ) / (tmdbCount + silverlogCount);
+
+      weightedAvg =
+        (tmdbAvg * tmdbCount + silverlogAvg * silverlogCount) /
+        (tmdbCount + silverlogCount);
     } else {
       weightedAvg = movie.vote_average;
     }
@@ -105,7 +109,9 @@ export async function getTopRatedMovies(req: Request, res: Response) {
     };
   });
 
-  moviesWithWeightedAvg.sort((a: any, b: any) => b.weighted_avg - a.weighted_avg);
+  moviesWithWeightedAvg.sort(
+    (a: any, b: any) => b.weighted_avg - a.weighted_avg,
+  );
 
   return res.status(200).json({
     results: moviesWithWeightedAvg,

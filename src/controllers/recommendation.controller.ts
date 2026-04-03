@@ -10,12 +10,16 @@ const recommendSchema = z.object({
   movie_id: z.coerce.number(),
 });
 
+// ENVOYER UNE RECOMMENDATION
 export async function sendRecommendation(req: Request, res: Response) {
   const sender_id = req.user!.id;
   const { recipient_id, movie_id } = recommendSchema.parse(req.body);
 
   if (recipient_id === Number(sender_id)) {
-    throw new AppError(400, "Vous ne pouvez pas vous recommander un film à vous-même");
+    throw new AppError(
+      400,
+      "Vous ne pouvez pas vous recommander un film à vous-même",
+    );
   }
 
   const followers = await sql`
