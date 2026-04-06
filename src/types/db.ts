@@ -9,7 +9,7 @@ export interface UserPayload extends JwtPayload {
   watchlist_id: number | null;
   avatar_path: string | null;
   banner_path: string | null;
-  token_id?: number;
+  token_id?: string;
 }
 
 export interface SessionUser {

@@ -151,19 +151,19 @@ export async function storeRefreshTokenModel(
 }
 
 // SUPPRIMER LE REFRESH TOKEN
-export async function deleteRefreshTokenByIdModel(id: number) {
+export async function deleteRefreshTokenByIdModel(id: string) {
   await sql`
     DELETE FROM refresh_tokens
-    WHERE id = ${id}
+    WHERE token = ${id}
   `;
 }
 
 // RECUPERER UN REFRESH TOKEN PAR SON ID
-export async function getRefreshTokenByIdModel(id: number) {
+export async function getRefreshTokenByIdModel(token: string) {
   const rows = await sql<RefreshToken[]>`
     SELECT *
     FROM refresh_tokens
-    WHERE id = ${id}
+    WHERE token = ${token}
   `;
   return rows[0] || null;
 }

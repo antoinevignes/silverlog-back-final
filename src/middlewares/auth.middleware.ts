@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { getRefreshTokenByIdModel } from "../models/auth.model.js";
 import type { UserPayload } from "../types/db.js";
-import bcrypt from "bcryptjs";
 import { regenerateTokensAndSetCookies } from "../utils/auth.js";
 import { getCookieOptions } from "../utils/handle-errors.js";
 
@@ -122,7 +121,7 @@ async function refreshAccessToken(
 
     if (decoded.token_id) {
       const dbToken = await getRefreshTokenByIdModel(decoded.token_id);
-      if (dbToken && (await bcrypt.compare(refreshToken, dbToken.token))) {
+      if (dbToken && dbToken.token === decoded.token_id) {
         validToken = dbToken;
       }
     }
