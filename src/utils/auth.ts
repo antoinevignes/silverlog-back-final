@@ -37,7 +37,7 @@ export async function regenerateTokensAndSetCookies(
   const payload = generateUserPayload(user, overrides);
 
   const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
-    expiresIn: "15m",
+    expiresIn: "10s",
   });
 
   // Supprime l'ancien refresh token si présent
