@@ -127,6 +127,17 @@ async function refreshAccessToken(
     }
 
     if (!validToken) {
+      const newAccessToken = req.cookies.accessToken;
+      if (newAccessToken) {
+        try {
+          const decoded = jwt.verify(
+            newAccessToken,
+            process.env.ACCESS_SECRET!,
+          ) as UserPayload;
+          req.user = decoded;
+          return next();
+        } catch (_) {}
+      }
       const options = getCookieOptions();
       res.clearCookie("accessToken", options);
       res.clearCookie("refreshToken", options);
