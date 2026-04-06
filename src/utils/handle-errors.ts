@@ -17,7 +17,7 @@ export function getCookieOptions() {
   return {
     httpOnly: true,
     secure: true,
-    sameSite: "strict",
+    sameSite: "none",
   } as const;
 }
 
