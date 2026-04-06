@@ -97,7 +97,7 @@ export async function deleteList(req: Request, res: Response) {
     throw new Error("Cette liste n'existe pas");
   }
 
-  if (listExists.user_id !== user_id) {
+  if (Number(listExists.user_id) !== Number(user_id)) {
     return res.status(403).json({ error: "Accès interdit" });
   }
 
