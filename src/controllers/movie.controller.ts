@@ -5,6 +5,7 @@ import {
   updateCrewPicksModel,
   getFriendsMovieActivityModel,
   getMoviesRatingsModel,
+  upsertMovieModel,
 } from "../models/movie.model.js";
 import dotenv from "dotenv";
 import { movieParamsSchema, updateCrewPicksSchema } from "../schemas/index.js";
@@ -47,9 +48,23 @@ export async function updateCrewPicks(req: Request, res: Response) {
   const adminId = req.user?.id;
   if (!adminId) return res.status(401).json({ error: "Non autorisé" });
 
-  const { movie_ids } = updateCrewPicksSchema.parse(req.body);
+  const { movies } = updateCrewPicksSchema.parse(req.body);
 
-  await updateCrewPicksModel(movie_ids, adminId);
+  for (const movie of movies) {
+    await upsertMovieModel(
+      movie.id,
+      movie.title,
+      movie.release_date || null,
+      movie.poster_path || null,
+      movie.backdrop_path || null,
+      movie.genres || null,
+    );
+  }
+
+  await updateCrewPicksModel(
+    movies.map((m) => m.id),
+    adminId,
+  );
 
   return res
     .status(200)

@@ -5,7 +5,16 @@ export const movieParamsSchema = z.object({
 });
 
 export const updateCrewPicksSchema = z.object({
-  movie_ids: z.array(z.coerce.number()),
+  movies: z.array(
+    z.object({
+      id: z.number(),
+      title: z.string(),
+      poster_path: z.string().nullable().optional(),
+      backdrop_path: z.string().nullable().optional(),
+      release_date: z.string().nullable().optional(),
+      genres: z.array(z.object({ id: z.number(), name: z.string() })).optional(),
+    }),
+  ),
 });
 
 export type MovieParamsInput = z.infer<typeof movieParamsSchema>;
