@@ -127,6 +127,7 @@ export async function getListDetailsModel(
             'release_date', m.release_date,
             'genres', m.genres,
             'seen_at', um.seen_at,
+            'rated_at', um.rated_at,
             'added_at', lm.added_at
           ) ORDER BY lm.position ASC, lm.added_at ASC), '[]')
           FROM list_movies lm

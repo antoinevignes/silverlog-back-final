@@ -7,9 +7,9 @@ const genreSchema = z.object({
 
 export const reviewSchema = z.object({
   movie_id: z.coerce.number(),
-  title: z.string().min(1),
+  title: z.string().min(1).optional(),
   content: z.string().min(1),
-  rating: z.coerce.number().min(0).max(20),
+  rating: z.coerce.number().min(0).max(20).optional(),
   has_spoilers: z.boolean().optional(),
   genres: z.array(genreSchema).optional(),
 });

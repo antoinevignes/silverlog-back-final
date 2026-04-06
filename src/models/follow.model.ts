@@ -96,6 +96,6 @@ export async function getFollowingActivityModel(user_id: string) {
     SELECT * 
     FROM activity_feed 
     ORDER BY created_at DESC
-    LIMIT 20;
+    LIMIT 10;
   `;
 }
