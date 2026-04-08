@@ -7,6 +7,7 @@ import {
   updateBanner,
   deleteBanner,
   updateLocation,
+  updateDescription,
   updateUsername,
   deleteAccount,
   getUser,
@@ -21,6 +22,7 @@ userRoute.get("/search", optionalAuth, searchUsers);
 userRoute.get("/active", getActiveUsers);
 userRoute.patch("/username", requireAuth, updateUsername);
 userRoute.patch("/location", requireAuth, updateLocation);
+userRoute.patch("/description", requireAuth, updateDescription);
 userRoute.patch("/avatar", requireAuth, upload.single("avatar"), updateAvatar);
 userRoute.delete("/avatar", requireAuth, deleteAvatar);
 userRoute.patch("/banner", requireAuth, uploadBanner.single("banner"), updateBanner);

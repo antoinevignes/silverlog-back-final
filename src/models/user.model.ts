@@ -14,6 +14,13 @@ export async function updateLocationModel(user_id: string, location: string) {
   `;
 }
 
+// MODIFIER LA DESCRIPTION
+export async function updateDescriptionModel(user_id: string, description: string) {
+  await sql`
+    UPDATE users SET description = ${description} WHERE id = ${user_id}
+  `;
+}
+
 // MODIFIER L'AVATAR
 export async function updateAvatarPathModel(
   user_id: string,

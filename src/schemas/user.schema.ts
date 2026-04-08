@@ -12,6 +12,10 @@ export const locationSchema = z.object({
   location: z.string().trim(),
 });
 
+export const descriptionSchema = z.object({
+  description: z.string().trim().max(140, "La description ne doit pas dépasser 140 caractères"),
+});
+
 export const passwordSchema = z
   .object({
     currentPassword: z
@@ -51,3 +55,4 @@ export type PasswordChangeInput = z.infer<typeof passwordSchema>;
 export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
 export type UsernameInput = z.infer<typeof usernameSchema>;
 export type LocationInput = z.infer<typeof locationSchema>;
+export type DescriptionInput = z.infer<typeof descriptionSchema>;

@@ -4,6 +4,7 @@ import {
   getUserModel,
   updateUsernameModel,
   updateLocationModel,
+  updateDescriptionModel,
   updateAvatarPathModel,
   updateBannerPathModel,
   deleteUserModel,
@@ -24,6 +25,7 @@ import {
   searchQuerySchema,
   usernameSchema,
   locationSchema,
+  descriptionSchema,
 } from "../schemas/index.js";
 
 interface UploadedFile {
@@ -72,6 +74,16 @@ export async function updateLocation(req: Request, res: Response) {
   const { location } = locationSchema.parse(req.body);
 
   await updateLocationModel(user_id, location);
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER LA DESCRIPTION
+export async function updateDescription(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { description } = descriptionSchema.parse(req.body);
+
+  await updateDescriptionModel(user_id, description);
 
   return res.status(200).json({ success: true });
 }
