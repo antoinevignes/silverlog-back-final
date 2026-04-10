@@ -1,0 +1,43 @@
+import { Router } from "express";
+import { optionalAuth } from "../middlewares/auth.middleware.js";
+import {
+  signIn,
+  signOut,
+  signUp,
+  verifyEmail,
+} from "../controllers/auth.controller.js";
+
+const authRoute = Router();
+
+// route de maintien de session
+authRoute.get("/session", optionalAuth, (req, res) => {
+  if (!req.user) {
+    return res.json({
+      isAuthenticated: false,
+      user: null,
+    });
+  }
+
+  res.json({
+    isAuthenticated: true,
+    user: {
+      id: req.user!.id,
+      username: req.user!.username,
+      email: req.user!.email,
+      role: req.user!.role,
+      top_list_id: req.user!.top_list_id,
+      watchlist_id: req.user!.watchlist_id,
+      avatar_path: req.user!.avatar_path,
+      banner_path: req.user!.banner_path,
+      location: req.user!.location,
+      description: req.user!.description,
+    },
+  });
+});
+
+authRoute.post("/sign-up", signUp);
+authRoute.get("/verify-email", verifyEmail);
+authRoute.post("/sign-in", signIn);
+authRoute.post("/sign-out", signOut);
+
+export default authRoute;

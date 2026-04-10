@@ -1,213 +1,213 @@
-import z from "zod";
+import type { Request, Response } from "express";
+import type { Multer } from "multer";
+import {
+  getUserModel,
+  updateUsernameModel,
+  updateLocationModel,
+  updateDescriptionModel,
+  updateAvatarPathModel,
+  updateBannerPathModel,
+  deleteUserModel,
+  searchUsersModel,
+  updatePasswordModel,
+  getActiveUsersModel,
+} from "../models/user.model.js";
+import { checkUserExists, signInModel } from "../models/auth.model.js";
 import bcrypt from "bcryptjs";
 import {
-  checkUserExists,
-  checkUserVerification,
-  deleteRefreshTokenModel,
-  signInModel,
-  signUpModel,
-  storeRefreshTokenModel,
-  verifyEmailModel,
-} from "../models/user.model.js";
-import { handleErrors } from "../utils/handle-errors.js";
-import type { Request, Response } from "express";
-import { Resend } from "resend";
-import generateEmail from "../utils/generate-email.js";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
+  deleteAvatarFromCloudinary,
+  deleteBannerFromCloudinary,
+} from "../utils/cloudinary.js";
+import { getCookieOptions, updateTokensAndSetCookies } from "../utils/auth.js";
+import {
+  passwordSchema,
+  searchQuerySchema,
+  usernameSchema,
+  locationSchema,
+  descriptionSchema,
+} from "../schemas/index.js";
 
-dotenv.config();
-
-const tokenSchema = z.string().trim();
-
-const registerSchema = z.object({
-  username: z.string().trim().min(1, "Nom d'utilisateur requis"),
-  email: z.email("Email requis"),
-  password: z
-    .string()
-    .trim()
-    .min(12, "Mot de passe trop court")
-    .max(128, "Mot de passe trop long")
-    .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
-    .regex(/[a-z]/, "Doit contenir au moins une minuscule")
-    .regex(/\d/, "Doit contenir au moins un chiffre")
-    .regex(
-      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/,
-      "Doit contenir un caractère spécial",
-    )
-    .refine((val) => !/\s/.test(val), "Ne doit pas contenir d'espace"),
-});
-
-const loginSchema = z.object({
-  email: z.email("Email requis"),
-  password: z.string().trim().min(1, "Mot de passe requis"),
-});
-
-// REGISTER
-export async function signUp(req: Request, res: Response) {
-  try {
-    const parsed = registerSchema.parse(req.body);
-
-    const { username, email, password } = parsed;
-
-    const exists = await checkUserExists(email, username);
-    if (exists.emailExists || exists.usernameExists)
-      throw new Error("Email ou nom d'utilisateur déjà utilisé");
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = await bcrypt.hash(email, 10);
-    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    await signUpModel({
-      username,
-      email,
-      hashedPassword,
-      role: "user",
-      verificationToken,
-      tokenExpiresAt,
-    });
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: "Silverlog <onboarding@resend.dev>",
-      to: [email],
-      subject: "Silverlog - Activer votre compte",
-      html: generateEmail(verificationToken),
-    });
-
-    return res.status(201).json({
-      success:
-        "Utilisateur créé avec succès. Un lien de verification vous a été envoyé par email.",
-    });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  public_id?: string;
 }
 
-// VERIFIER EMAIL
-export async function verifyEmail(req: Request, res: Response) {
-  const parsed = tokenSchema.safeParse(req.query.token);
-  if (!parsed.success) {
-    return res.status(400).json({
-      success: false,
-      message: "Token manquant",
-    });
-  }
+// RECUPERER LES INFOS DE L'UTILISATEUR
+export async function getUser(req: Request, res: Response) {
+  const { user_id } = req.params;
+  const current_user_id = req.user?.id;
 
-  const token = parsed.data;
+  if (!user_id) throw new Error("Utilisateur introuvable");
 
-  try {
-    const user = await checkUserVerification(token);
+  const user = await getUserModel(String(user_id), current_user_id);
 
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Token invalide" });
-    }
+  if (!user) throw new Error("Utilisateur introuvable");
 
-    if (user.email_verified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email déjà vérifié" });
-    }
-
-    if (new Date(user.token_expires_at) < new Date()) {
-      return res.status(400).json({ success: false, message: "Token expiré" });
-    }
-
-    await verifyEmailModel(user.id);
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Email vérifié avec succès !" });
-  } catch (error) {
-    console.error("Erreur vérification email:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Erreur serveur",
-    });
-  }
+  return res.status(200).json(user);
 }
 
-// LOGIN
-export async function signIn(req: Request, res: Response) {
-  try {
-    const parsed = loginSchema.parse(req.body);
-    const { email, password } = parsed;
+// MODIFIER LE NOM D'UTILISATEUR
+export async function updateUsername(req: Request, res: Response) {
+  const user = req.user!;
+  const { username } = usernameSchema.parse(req.body);
 
-    const user = await signInModel(email);
-    if (!user) throw new Error("Email ou mot de passe invalide");
+  const exists = await checkUserExists("", username);
+  if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) throw new Error("Email ou mot de passe invalide");
+  await updateUsernameModel(user.id, username);
+  await updateTokensAndSetCookies(req, res, { ...user, username });
 
-    if (!user.verified)
-      throw new Error(
-        "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
-      );
-
-    const accessToken = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        top_list_id: user.top_list_id,
-        watchlist_id: user.watchlist_id,
-      },
-      process.env.ACCESS_SECRET!,
-      { expiresIn: "15m" },
-    );
-
-    const refreshToken = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        top_list_id: user.top_list_id,
-        watchlist_id: user.watchlist_id,
-      },
-      process.env.REFRESH_SECRET!,
-      { expiresIn: "7d" },
-    );
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    await storeRefreshTokenModel(user.id, refreshToken, expiresAt);
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      top_list_id: user.top_list_id,
-      watchlist_id: user.watchlist_id,
-    });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(200).json({ success: true, username });
 }
 
-// SIGNOUT
-export async function signOut(req: Request, res: Response) {
-  const refreshToken = req.cookies.refreshToken;
+// MODIFIER LA LOCALISATION
+export async function updateLocation(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { location } = locationSchema.parse(req.body);
 
-  if (refreshToken) {
-    await deleteRefreshTokenModel(refreshToken);
-  }
+  await updateLocationModel(user_id, location);
 
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
   return res.status(200).json({ success: true });
+}
+
+// MODIFIER LA DESCRIPTION
+export async function updateDescription(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { description } = descriptionSchema.parse(req.body);
+
+  await updateDescriptionModel(user_id, description);
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER L'AVATAR
+export async function updateAvatar(req: Request, res: Response) {
+  const user = req.user!;
+
+  if (!req.file) throw new Error("Aucun fichier reçu");
+
+  const file = req.file as UploadedFile;
+  const publicId: string = file.filename ?? file.public_id ?? "";
+  const avatar_path = publicId.split("/").pop()!;
+
+  await updateAvatarPathModel(user.id, avatar_path);
+  await updateTokensAndSetCookies(req, res, { ...user, avatar_path });
+
+  return res.status(200).json({ success: true, avatar_path });
+}
+
+// SUPPRIMER L'AVATAR
+export async function deleteAvatar(req: Request, res: Response) {
+  const user = req.user!;
+
+  const dbUser = await getUserModel(user.id);
+
+  if (dbUser?.avatar_path) {
+    await deleteAvatarFromCloudinary(dbUser.avatar_path);
+  }
+
+  await updateAvatarPathModel(user.id, null);
+  await updateTokensAndSetCookies(req, res, { ...user, avatar_path: null });
+
+  return res.status(200).json({ success: true });
+}
+
+// MODIFIER LE BANNER
+export async function updateBanner(req: Request, res: Response) {
+  const user = req.user!;
+
+  if (!req.file) throw new Error("Aucun fichier reçu");
+
+  const file = req.file as UploadedFile;
+  const publicId: string = file.filename ?? file.public_id ?? "";
+  const banner_path = publicId.split("/").pop()!;
+
+  await updateBannerPathModel(user.id, banner_path);
+  await updateTokensAndSetCookies(req, res, { ...user, banner_path });
+
+  return res.status(200).json({ success: true, banner_path });
+}
+
+// SUPPRIMER LE BANNER
+export async function deleteBanner(req: Request, res: Response) {
+  const user = req.user!;
+
+  const dbUser = await getUserModel(user.id);
+
+  if (dbUser?.banner_path) {
+    await deleteBannerFromCloudinary(dbUser.banner_path);
+  }
+
+  await updateBannerPathModel(user.id, null);
+  await updateTokensAndSetCookies(req, res, { ...user, banner_path: null });
+
+  return res.status(200).json({ success: true });
+}
+
+// SUPPRIMER LE COMPTE UTILISATEUR
+export async function deleteAccount(req: Request, res: Response) {
+  const user_id = req.user!.id;
+
+  await deleteUserModel(user_id);
+
+  const options = getCookieOptions();
+  res.clearCookie("accessToken", options);
+  res.clearCookie("refreshToken", options);
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Compte supprimé avec succès" });
+}
+
+// RECHERCHER DES UTILISATEURS
+export async function searchUsers(req: Request, res: Response) {
+  const { q } = searchQuerySchema.parse(req.query);
+
+  const users = await searchUsersModel(q);
+
+  return res.status(200).json(users);
+}
+
+export async function updatePassword(req: Request, res: Response) {
+  const user = req.user!;
+  const parsed = passwordSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ success: false, errors: parsed.error.flatten() });
+  }
+
+  const dbUser = await signInModel(user.email);
+  if (!dbUser || !dbUser.password) throw new Error("Utilisateur introuvable");
+
+  const passwordMatch = await bcrypt.compare(
+    parsed.data.currentPassword,
+    dbUser.password,
+  );
+
+  if (!passwordMatch) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Mot de passe actuel incorrect" });
+  }
+
+  const hashedPassword = await bcrypt.hash(parsed.data.newPassword, 12);
+  await updatePasswordModel(user.id, hashedPassword);
+
+  return res.status(200).json({ success: true });
+}
+
+// UTILISATEURS LES PLUS ACTIFS
+export async function getActiveUsers(_req: Request, res: Response) {
+  const users = await getActiveUsersModel(6);
+
+  return res.status(200).json(users);
 }

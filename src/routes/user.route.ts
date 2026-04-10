@@ -1,36 +1,34 @@
 import { Router } from "express";
+import { requireAuth, optionalAuth } from "../middlewares/auth.middleware.js";
+import { upload, uploadBanner } from "../utils/cloudinary.js";
 import {
-  signIn,
-  signOut,
-  signUp,
-  verifyEmail,
+  updateAvatar,
+  deleteAvatar,
+  updateBanner,
+  deleteBanner,
+  updateLocation,
+  updateDescription,
+  updateUsername,
+  deleteAccount,
+  getUser,
+  searchUsers,
+  updatePassword,
+  getActiveUsers,
 } from "../controllers/user.controller.js";
-import { optionalAuth } from "../middlewares/auth.middleware.js";
 
 const userRoute = Router();
 
-userRoute.get("/session", optionalAuth, (req, res) => {
-  if (!req.user) {
-    return res.json({
-      isAuthenticated: false,
-      user: null,
-    });
-  }
-
-  res.json({
-    isAuthenticated: true,
-    user: {
-      id: req.user!.id,
-      username: req.user!.username,
-      email: req.user!.email,
-      top_list_id: req.user!.top_list_id,
-      watchlist_id: req.user!.watchlist_id,
-    },
-  });
-});
-userRoute.post("/sign-up", signUp);
-userRoute.get("/verify-email", verifyEmail);
-userRoute.post("/sign-in", signIn);
-userRoute.post("/sign-out", signOut);
+userRoute.get("/search", optionalAuth, searchUsers);
+userRoute.get("/active", getActiveUsers);
+userRoute.patch("/username", requireAuth, updateUsername);
+userRoute.patch("/location", requireAuth, updateLocation);
+userRoute.patch("/description", requireAuth, updateDescription);
+userRoute.patch("/avatar", requireAuth, upload.single("avatar"), updateAvatar);
+userRoute.delete("/avatar", requireAuth, deleteAvatar);
+userRoute.patch("/banner", requireAuth, uploadBanner.single("banner"), updateBanner);
+userRoute.delete("/banner", requireAuth, deleteBanner);
+userRoute.delete("/delete", requireAuth, deleteAccount);
+userRoute.patch("/password", requireAuth, updatePassword);
+userRoute.get("/:user_id", optionalAuth, getUser);
 
 export default userRoute;

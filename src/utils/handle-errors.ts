@@ -1,7 +1,24 @@
-import type { Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-export function handleErrors(err: unknown, res: Response) {
+// CLASSE D'ERREUR PERSONNALISEE AVEC CODE HTTP
+export class AppError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+// ERROR HANDLER GLOBAL
+export function errorHandler(
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   console.error(err);
 
   if (err instanceof ZodError) {
@@ -12,6 +29,8 @@ export function handleErrors(err: unknown, res: Response) {
         message: issue.message,
       })),
     });
+  } else if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ message: err.message });
   } else if (err instanceof Error) {
     return res.status(400).json({ message: err.message });
   } else {

@@ -2,102 +2,97 @@ import type { Request, Response } from "express";
 import {
   deleteRatingModel,
   getSeenMoviesModel,
+  getSeenMoviesModel,
   getStateModel,
-  updateSeenDateModel,
-  upsertRatingModel,
+  updateSeenDateWithMovieModel,
+  upsertRatingWithMovieModel,
+  removeFromDiarylModel,
 } from "../models/user-movie.model.js";
-import { handleErrors } from "../utils/handle-errors.js";
+import {
+  userMovieParamSchema,
+  seenMovieSchema,
+  ratingMovieSchema,
+} from "../schemas/index.js";
 
+// RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
-  try {
-    const { movie_id } = req.params;
+  const { movie_id } = userMovieParamSchema.parse(req.params);
 
-    if (!movie_id) {
-      return res.status(400).json({ error: "Movie ID  requis" });
-    }
+  const user_id = req.user?.id;
 
-    const user_id = req.user?.id;
-
-    if (!user_id) {
-      return res.status(200).json({
-        rating: null,
-        seen: false,
-        lists: [],
-      });
-    }
-
-    const state = await getStateModel(user_id, String(movie_id));
-
-    return res.status(200).json(state);
-  } catch (err) {
-    return handleErrors(err, res);
-  }
-}
-
-export async function upsertRating(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
-    const { movie_id } = req.params;
-    const { rating } = req.body;
-
-    if (!movie_id || !rating || rating === null) {
-      return res.status(400).json({ error: "Paramètres manquants" });
-    }
-
-    const state = await upsertRatingModel(user_id, String(movie_id), rating);
-
+  if (!user_id) {
     return res.status(200).json({
-      success: true,
-      state,
+      rating: null,
+      seen: false,
+      lists: [],
     });
-  } catch (err) {
-    return handleErrors(err, res);
   }
+
+  const state = await getStateModel(user_id, String(movie_id));
+
+  return res.status(200).json(state);
 }
 
+// AJOUTER OU MODIFIER LA NOTE D'UN FILM
+export async function upsertRating(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { movie_id } = userMovieParamSchema.parse(req.params);
+  const movieData = ratingMovieSchema.parse(req.body);
+
+  const state = await upsertRatingWithMovieModel(
+    user_id,
+    movie_id,
+    movieData.rating,
+    movieData,
+  );
+
+  return res.status(200).json({
+    success: true,
+    state,
+  });
+}
+
+// SUPPRIMER LA NOTE D'UN FILM
 export async function deleteRating(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
-    const { movie_id } = req.params;
+  const user_id = req.user!.id;
+  const { movie_id } = userMovieParamSchema.parse(req.params);
 
-    if (!movie_id) {
-      return res.status(400).json({ error: "Movie ID  requis" });
-    }
+  await deleteRatingModel(user_id, String(movie_id));
 
-    await deleteRatingModel(user_id, String(movie_id));
-
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(200).json({ success: true });
 }
 
+// MODIFIER LA DATE DE VISIONNAGE D'UN FILM
 export async function updateSeenDate(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
-    const { movie_id } = req.params;
-    const { date } = req.body;
+  const user_id = req.user!.id;
+  const { movie_id } = userMovieParamSchema.parse(req.params);
+  const movieData = seenMovieSchema.parse(req.body);
 
-    if (!movie_id) {
-      return res.status(400).json({ error: "Movie ID  requis" });
-    }
+  await updateSeenDateWithMovieModel(
+    user_id,
+    movie_id,
+    movieData.date ? new Date(movieData.date) : null,
+    movieData.title ? movieData : undefined,
+  );
 
-    await updateSeenDateModel(date, user_id, String(movie_id));
-
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(200).json({ success: true });
 }
 
+// RECUPERER LES FILMS VUS PAR L'UTILISATEUR
 export async function getSeenMovies(req: Request, res: Response) {
-  try {
-    const user_id = req.user!.id;
+  const user_id = req.user!.id;
 
-    const seenMovies = await getSeenMoviesModel(user_id);
+  const seenMovies = await getSeenMoviesModel(user_id);
 
-    return res.status(200).json(seenMovies);
-  } catch (err) {
-    return handleErrors(err, res);
-  }
+  return res.status(200).json(seenMovies);
+}
+
+// SUPPRIMER UN FILM DU JOURNAL
+export async function removeFromDiary(req: Request, res: Response) {
+  const user_id = req.user!.id;
+  const { movie_id } = userMovieParamSchema.parse(req.params);
+
+  await removeFromDiarylModel(user_id, movie_id);
+
+  return res.status(200).json({ success: true });
 }
