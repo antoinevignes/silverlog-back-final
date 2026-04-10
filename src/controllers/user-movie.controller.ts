@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import {
   deleteRatingModel,
   getSeenMoviesModel,
-  getSeenMoviesModel,
   getStateModel,
   updateSeenDateWithMovieModel,
   upsertRatingWithMovieModel,

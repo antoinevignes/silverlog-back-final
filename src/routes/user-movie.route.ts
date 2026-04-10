@@ -2,9 +2,7 @@ import { Router } from "express";
 import {
   deleteRating,
   getSeenMovies,
-  getSeenMovies,
   getState,
-  updateSeenDate,
   updateSeenDate,
   upsertRating,
   removeFromDiary,
