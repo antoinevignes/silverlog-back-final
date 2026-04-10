@@ -97,7 +97,10 @@ export async function deleteRatingModel(user_id: string, movie_id: string) {
   await sql`
     UPDATE user_movies
     SET rating = NULL
+    UPDATE user_movies
+    SET rating = NULL
     WHERE user_id = ${user_id}
+    AND movie_id = ${movie_id};
     AND movie_id = ${movie_id};
   `;
 }

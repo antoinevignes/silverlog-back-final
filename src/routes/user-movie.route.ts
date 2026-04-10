@@ -2,7 +2,9 @@ import { Router } from "express";
 import {
   deleteRating,
   getSeenMovies,
+  getSeenMovies,
   getState,
+  updateSeenDate,
   updateSeenDate,
   upsertRating,
   removeFromDiary,
@@ -11,6 +13,7 @@ import { optionalAuth, requireAuth } from "../middlewares/auth.middleware.js";
 
 const userMovieRoute = Router();
 
+userMovieRoute.get("/seen", requireAuth, getSeenMovies);
 userMovieRoute.get("/seen", requireAuth, getSeenMovies);
 userMovieRoute.get("/:movie_id", optionalAuth, getState);
 userMovieRoute.post("/:movie_id/rate", requireAuth, upsertRating);

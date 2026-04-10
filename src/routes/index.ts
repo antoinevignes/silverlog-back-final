@@ -6,6 +6,7 @@ import tmdbRoute from "./tmdb.route.js";
 import movieRoute from "./movie.route.js";
 import userMovieRoute from "./user-movie.route.js";
 import reviewRoute from "./review.route.js";
+import reviewRoute from "./review.route.js";
 import sql from "../db.js";
 import listRoute from "./list.route.js";
 import adminRoute from "./admin.route.js";

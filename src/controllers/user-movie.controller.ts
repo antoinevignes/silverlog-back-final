@@ -2,12 +2,17 @@ import type { Request, Response } from "express";
 import {
   deleteRatingModel,
   getSeenMoviesModel,
+  getSeenMoviesModel,
   getStateModel,
   updateSeenDateWithMovieModel,
   upsertRatingWithMovieModel,
   removeFromDiarylModel,
 } from "../models/user-movie.model.js";
-import { userMovieParamSchema, seenMovieSchema, ratingMovieSchema } from "../schemas/index.js";
+import {
+  userMovieParamSchema,
+  seenMovieSchema,
+  ratingMovieSchema,
+} from "../schemas/index.js";
 
 // RECUPERER L'ETAT UTILISATEUR D'UN FILM
 export async function getState(req: Request, res: Response) {
