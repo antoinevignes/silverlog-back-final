@@ -194,6 +194,8 @@ export async function replaceRefreshTokenModel(
 
 // RECUPERER UN REFRESH TOKEN PAR SON ID
 export async function getRefreshTokenByIdModel(token: string) {
+  await sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`;
+
   const rows = await sql<RefreshToken[]>`
     SELECT *
     FROM refresh_tokens

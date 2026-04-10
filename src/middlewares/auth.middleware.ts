@@ -144,7 +144,13 @@ async function refreshAccessToken(
       return res.status(401).json({ error: "Session révoquée" });
     }
 
-    const { payload } = await regenerateTokensAndSetCookies(req, res, decoded);
+    const { payload } = await regenerateTokensAndSetCookies(
+      req,
+      res,
+      decoded,
+      {},
+      decoded.token_id,
+    );
 
     req.user = payload as UserPayload;
     next();

@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
-import { replaceRefreshTokenModel } from "../models/auth.model.js";
+import {
+  storeRefreshTokenModel,
+  deleteRefreshTokenByIdModel,
+} from "../models/auth.model.js";
 
 import type { UserPayload, SessionUser } from "../types/db.js";
 import { getCookieOptions } from "./handle-errors.js";
@@ -30,16 +33,21 @@ export async function regenerateTokensAndSetCookies(
   res: Response,
   user: SessionUser,
   overrides: Partial<UserPayload> = {},
+  oldTokenId?: string,
 ) {
   const payload = generateUserPayload(user, overrides);
   const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET!, {
-    expiresIn: "15m",
+    expiresIn: "10s",
   });
 
   const tokenId = randomUUID();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  await replaceRefreshTokenModel(payload.id, tokenId, expiresAt);
+  if (oldTokenId) {
+    await deleteRefreshTokenByIdModel(oldTokenId);
+  }
+
+  await storeRefreshTokenModel(payload.id, tokenId, expiresAt);
 
   const refreshToken = jwt.sign(
     { ...payload, token_id: tokenId },
