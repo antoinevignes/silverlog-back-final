@@ -123,110 +123,36 @@ export async function signInModel(email: string) {
   return rows[0] || null;
 }
 
-// RECUPERER LES TOKENS DE L'UTILISATEUR
-export async function getUserRefreshTokensModel(user_id: string) {
-  await sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`;
-
-  const tokens = await sql<RefreshToken[]>`
-    SELECT *
-    FROM refresh_tokens
-    WHERE user_id = ${user_id}
-  `;
-
-  return tokens;
-}
-
-// STOCKER LE REFRESH TOKEN
-export async function storeRefreshTokenModel(
+// STOCKER LE REFRESH TOKEN PAR SON TOKEN_ID
+export async function storeRefreshTokenIdModel(
   user_id: string,
-  refreshToken: string,
+  token_id: string,
   expires_at: Date,
 ) {
   const rows = await sql<{ id: number }[]>`
-    INSERT INTO refresh_tokens (user_id, token, expires_at)
-    VALUES (${user_id}, ${refreshToken}, ${expires_at})
+    INSERT INTO refresh_tokens (user_id, token_id, expires_at)
+    VALUES (${user_id}, ${token_id}, ${expires_at})
     RETURNING id
   `;
   return rows[0]?.id;
 }
 
-// SUPPRIMER LE REFRESH TOKEN
-export async function deleteRefreshTokenByIdModel(id: string) {
+// SUPPRIMER LE REFRESH TOKEN PAR SON TOKEN_ID
+export async function deleteRefreshTokenIdModel(token_id: string) {
   await sql`
     DELETE FROM refresh_tokens
-    WHERE token = ${id}
+    WHERE token_id = ${token_id}
   `;
 }
 
-// SUPPRIMER TOUS LES REFRESH TOKENS D'UN UTILISATEUR
-export async function deleteAllUserRefreshTokensModel(user_id: string) {
-  await sql`
-    DELETE FROM refresh_tokens
-    WHERE user_id = ${user_id}
-  `;
-}
-
-// REMPLACER TOUS LES REFRESH TOKENS PAR UN SEUL
-export async function replaceRefreshTokenModel(
-  user_id: string,
-  refreshToken: string,
-  expires_at: Date,
-) {
-  return sql.begin(async (t) => {
-    const tx = t as unknown as typeof sql;
-
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${user_id}))`;
-
-    await tx`
-      DELETE FROM refresh_tokens
-      WHERE user_id = ${user_id}
-    `;
-
-    const rows = await tx<{ id: number }[]>`
-      INSERT INTO refresh_tokens (user_id, token, expires_at)
-      VALUES (${user_id}, ${refreshToken}, ${expires_at})
-      RETURNING id
-    `;
-
-    return rows[0]?.id;
-  });
-}
-
-// ROTATION ATOMIQUE
-export async function rotateRefreshTokenModel(
-  oldTokenId: string,
-  user_id: string,
-  newTokenId: string,
-  expires_at: Date,
-) {
-  return sql.begin(async (t) => {
-    const tx = t as unknown as typeof sql;
-
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${user_id}))`;
-
-    await tx`
-      DELETE FROM refresh_tokens
-      WHERE token = ${oldTokenId}
-    `;
-
-    const rows = await tx<{ id: number }[]>`
-      INSERT INTO refresh_tokens (user_id, token, expires_at)
-      VALUES (${user_id}, ${newTokenId}, ${expires_at})
-      RETURNING id
-    `;
-
-    return rows[0]?.id;
-  });
-}
-
-// RECUPERER UN REFRESH TOKEN PAR SON ID
-export async function getRefreshTokenByIdModel(token: string) {
+// VERIFICATION DU REFRESH TOKEN PAR SON TOKEN_ID
+export async function getRefreshTokenIdModel(token_id: string) {
   await sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`;
 
   const rows = await sql<RefreshToken[]>`
     SELECT *
     FROM refresh_tokens
-    WHERE token = ${token}
+    WHERE token_id = ${token_id}
   `;
   return rows[0] || null;
 }

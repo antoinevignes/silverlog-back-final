@@ -18,8 +18,7 @@ import {
   deleteAvatarFromCloudinary,
   deleteBannerFromCloudinary,
 } from "../utils/cloudinary.js";
-import { regenerateTokensAndSetCookies } from "../utils/auth.js";
-import { getCookieOptions } from "../utils/handle-errors.js";
+import { getCookieOptions, updateTokensAndSetCookies } from "../utils/auth.js";
 import {
   passwordSchema,
   searchQuerySchema,
@@ -63,7 +62,7 @@ export async function updateUsername(req: Request, res: Response) {
   if (exists.usernameExists) throw new Error("Nom d'utilisateur déjà utilisé");
 
   await updateUsernameModel(user.id, username);
-  await regenerateTokensAndSetCookies(req, res, user, { username });
+  await updateTokensAndSetCookies(req, res, { ...user, username });
 
   return res.status(200).json({ success: true, username });
 }
@@ -99,7 +98,7 @@ export async function updateAvatar(req: Request, res: Response) {
   const avatar_path = publicId.split("/").pop()!;
 
   await updateAvatarPathModel(user.id, avatar_path);
-  await regenerateTokensAndSetCookies(req, res, user, { avatar_path });
+  await updateTokensAndSetCookies(req, res, { ...user, avatar_path });
 
   return res.status(200).json({ success: true, avatar_path });
 }
@@ -115,7 +114,7 @@ export async function deleteAvatar(req: Request, res: Response) {
   }
 
   await updateAvatarPathModel(user.id, null);
-  await regenerateTokensAndSetCookies(req, res, user, { avatar_path: null });
+  await updateTokensAndSetCookies(req, res, { ...user, avatar_path: null });
 
   return res.status(200).json({ success: true });
 }
@@ -131,7 +130,7 @@ export async function updateBanner(req: Request, res: Response) {
   const banner_path = publicId.split("/").pop()!;
 
   await updateBannerPathModel(user.id, banner_path);
-  await regenerateTokensAndSetCookies(req, res, user, { banner_path });
+  await updateTokensAndSetCookies(req, res, { ...user, banner_path });
 
   return res.status(200).json({ success: true, banner_path });
 }
@@ -147,7 +146,7 @@ export async function deleteBanner(req: Request, res: Response) {
   }
 
   await updateBannerPathModel(user.id, null);
-  await regenerateTokensAndSetCookies(req, res, user, { banner_path: null });
+  await updateTokensAndSetCookies(req, res, { ...user, banner_path: null });
 
   return res.status(200).json({ success: true });
 }

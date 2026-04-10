@@ -12,15 +12,6 @@ export class AppError extends Error {
   }
 }
 
-// COOKIE OPTIONS CENTRALISEES
-export function getCookieOptions() {
-  return {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-  } as const;
-}
-
 // ERROR HANDLER GLOBAL
 export function errorHandler(
   err: unknown,

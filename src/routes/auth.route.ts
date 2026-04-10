@@ -9,6 +9,7 @@ import {
 
 const authRoute = Router();
 
+// route de maintien de session
 authRoute.get("/session", optionalAuth, (req, res) => {
   if (!req.user) {
     return res.json({
@@ -27,7 +28,7 @@ authRoute.get("/session", optionalAuth, (req, res) => {
       top_list_id: req.user!.top_list_id,
       watchlist_id: req.user!.watchlist_id,
       avatar_path: req.user!.avatar_path,
-      backdrop_path: req.user!.backdrop_path,
+      banner_path: req.user!.banner_path,
     },
   });
 });

@@ -3,7 +3,7 @@ import z from "zod";
 import {
   checkUserExists,
   checkUserVerification,
-  deleteRefreshTokenByIdModel,
+  deleteRefreshTokenIdModel,
   signInModel,
   signUpModel,
   verifyEmailModel,
@@ -14,8 +14,7 @@ import { Resend } from "resend";
 import generateEmail from "../utils/generate-email.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { regenerateTokensAndSetCookies } from "../utils/auth.js";
-import { getCookieOptions } from "../utils/handle-errors.js";
+import { createTokensAndSetCookies, getCookieOptions } from "../utils/auth.js";
 import { registerSchema, loginSchema } from "../schemas/index.js";
 
 dotenv.config();
@@ -43,6 +42,7 @@ export async function signUp(req: Request, res: Response) {
     tokenExpiresAt,
   });
 
+  // envoi email verification
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
     from: "Silverlog <onboarding@silverlog.tech>",
@@ -104,7 +104,8 @@ export async function signIn(req: Request, res: Response) {
       "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
     );
 
-  const { payload } = await regenerateTokensAndSetCookies(req, res, user);
+  // creation des tokens et cookies
+  const { payload } = await createTokensAndSetCookies(res, user);
 
   return res.status(200).json(payload);
 }
@@ -113,17 +114,19 @@ export async function signIn(req: Request, res: Response) {
 export async function signOut(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
 
+  // suppression du refresh token en base
   if (refreshToken) {
     try {
       const decoded = jwt.decode(refreshToken) as UserPayload | null;
       if (decoded?.token_id) {
-        await deleteRefreshTokenByIdModel(decoded.token_id);
+        await deleteRefreshTokenIdModel(decoded.token_id);
       }
     } catch (err) {
       console.error("Erreur lors de la suppression du refresh token:", err);
     }
   }
 
+  // suppression des cookies
   const options = getCookieOptions();
   res.clearCookie("accessToken", options);
   res.clearCookie("refreshToken", options);

@@ -85,7 +85,7 @@ export interface UserMovie {
 export interface RefreshToken {
   id: number;
   user_id: string;
-  token: string;
+  token_id: string;
   expires_at: Date;
   created_at: Date;
 }
