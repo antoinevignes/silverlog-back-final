@@ -192,6 +192,33 @@ export async function replaceRefreshTokenModel(
   });
 }
 
+// ROTATION ATOMIQUE
+export async function rotateRefreshTokenModel(
+  oldTokenId: string,
+  user_id: string,
+  newTokenId: string,
+  expires_at: Date,
+) {
+  return sql.begin(async (t) => {
+    const tx = t as unknown as typeof sql;
+
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${user_id}))`;
+
+    await tx`
+      DELETE FROM refresh_tokens
+      WHERE token = ${oldTokenId}
+    `;
+
+    const rows = await tx<{ id: number }[]>`
+      INSERT INTO refresh_tokens (user_id, token, expires_at)
+      VALUES (${user_id}, ${newTokenId}, ${expires_at})
+      RETURNING id
+    `;
+
+    return rows[0]?.id;
+  });
+}
+
 // RECUPERER UN REFRESH TOKEN PAR SON ID
 export async function getRefreshTokenByIdModel(token: string) {
   await sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`;
