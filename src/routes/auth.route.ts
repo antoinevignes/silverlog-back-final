@@ -29,6 +29,8 @@ authRoute.get("/session", optionalAuth, (req, res) => {
       watchlist_id: req.user!.watchlist_id,
       avatar_path: req.user!.avatar_path,
       banner_path: req.user!.banner_path,
+      location: req.user!.location,
+      description: req.user!.description,
     },
   });
 });

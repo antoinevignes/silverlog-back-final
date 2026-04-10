@@ -25,6 +25,8 @@ export function generateUserPayload(user: SessionUser): UserPayload {
     watchlist_id: user.watchlist_id ?? null,
     avatar_path: user.avatar_path ?? null,
     banner_path: user.banner_path ?? null,
+    location: user.location,
+    description: user.description,
   };
 }
 

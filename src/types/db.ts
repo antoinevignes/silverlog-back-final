@@ -9,6 +9,8 @@ export interface UserPayload extends JwtPayload {
   watchlist_id: number | null;
   avatar_path: string | null;
   banner_path: string | null;
+  location: string | undefined;
+  description: string | undefined;
   token_id?: string;
 }
 
@@ -22,6 +24,8 @@ export interface SessionUser {
   watchlist_id?: number | null;
   avatar_path?: string | null;
   banner_path?: string | null;
+  location?: string;
+  description?: string;
 }
 
 export interface User {

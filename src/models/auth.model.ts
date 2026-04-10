@@ -5,6 +5,9 @@ export interface SignInUser extends User {
   watchlist_id: number | null;
   top_list_id: number | null;
   avatar_path: string | null;
+  banner_path: string | null;
+  location?: string;
+  description?: string;
 }
 
 // CREER UTILISATEUR
@@ -110,6 +113,9 @@ export async function signInModel(email: string) {
       u.role,
       u.verified,
       u.avatar_path,
+      u.banner_path,
+      u.location,
+      u.description,
 
       MAX(CASE WHEN l.list_type = 'watchlist' THEN l.id END) AS watchlist_id,
       MAX(CASE WHEN l.list_type = 'top' THEN l.id END) AS top_list_id
