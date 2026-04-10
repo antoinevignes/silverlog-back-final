@@ -16,8 +16,14 @@ export function getCookieOptions() {
 
 // PAYLOAD UNIQUE POUR TOUTE L'APP
 export function generateUserPayload(user: SessionUser): UserPayload {
+  const userId = user.id || user.user_id;
+  
+  if (!userId) {
+    throw new Error("User ID is required but was undefined");
+  }
+  
   return {
-    id: String(user.id || user.user_id),
+    id: String(userId),
     username: user.username,
     email: user.email,
     role: user.role,

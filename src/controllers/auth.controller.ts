@@ -104,8 +104,13 @@ export async function signIn(req: Request, res: Response) {
       "Email non-verifié. Veuillez valider votre compte avant de vous connecter.",
     );
 
+  // Log pour déboguer
+  console.log("[SignIn] User from DB:", { id: user.id, email: user.email });
+
   // creation des tokens et cookies
   const { payload } = await createTokensAndSetCookies(res, user);
+
+  console.log("[SignIn] Payload generated:", { id: payload.id });
 
   return res.status(200).json(payload);
 }

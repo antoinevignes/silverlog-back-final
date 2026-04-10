@@ -44,11 +44,20 @@ export async function getUser(req: Request, res: Response) {
   const { user_id } = req.params;
   const current_user_id = req.user?.id;
 
-  if (!user_id) throw new Error("Utilisateur introuvable");
+  console.log("[getUser] Requested user_id:", user_id);
+  console.log("[getUser] Current user from token:", current_user_id);
+
+  if (!user_id || user_id === "undefined") {
+    console.error("[getUser] Invalid user_id:", user_id);
+    throw new Error("Utilisateur introuvable");
+  }
 
   const user = await getUserModel(String(user_id), current_user_id);
 
-  if (!user) throw new Error("Utilisateur introuvable");
+  if (!user) {
+    console.error("[getUser] User not found in DB for id:", user_id);
+    throw new Error("Utilisateur introuvable");
+  }
 
   return res.status(200).json(user);
 }
