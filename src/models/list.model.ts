@@ -220,6 +220,8 @@ export async function getPublicListsModel() {
     LEFT JOIN saved_lists sl ON sl.list_id = l.id
     WHERE l.is_public = true
     GROUP BY l.id, u.username
+    ORDER BY saved_count DESC
+    LIMIT 4
   `;
 }
 
