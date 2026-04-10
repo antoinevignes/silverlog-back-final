@@ -96,9 +96,18 @@ export async function upsertRatingWithMovieModel(
 export async function deleteRatingModel(user_id: string, movie_id: string) {
   await sql`
     UPDATE user_movies
-    SET rating = NULL
+    SET rating = NULL, rated_at = NULL, seen = false
     WHERE user_id = ${user_id}
     AND movie_id = ${movie_id};
+  `;
+
+  await sql`
+    DELETE FROM user_movies
+    WHERE user_id = ${user_id}
+    AND movie_id = ${movie_id}
+    AND rating IS NULL
+    AND seen_at IS NULL
+    AND rated_at IS NULL;
   `;
 }
 

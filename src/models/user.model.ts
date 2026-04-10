@@ -55,13 +55,16 @@ export async function getUserModel(user_id: string, current_user_id?: string) {
 WITH user_stats AS (
     SELECT 
         user_id,
-        COUNT(movie_id) as viewed_movies,
+        COUNT(movie_id) FILTER (WHERE seen_at IS NOT NULL OR rated_at IS NOT NULL) as viewed_movies,
         COUNT(movie_id) FILTER (
-            WHERE EXTRACT(YEAR FROM seen_at) = EXTRACT(YEAR FROM CURRENT_DATE)
-            AND EXTRACT(MONTH FROM seen_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+            WHERE (EXTRACT(YEAR FROM seen_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM seen_at) = EXTRACT(MONTH FROM CURRENT_DATE))
+            OR (EXTRACT(YEAR FROM rated_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM rated_at) = EXTRACT(MONTH FROM CURRENT_DATE))
         ) as viewed_movies_this_month,
         COUNT(movie_id) FILTER (
             WHERE EXTRACT(YEAR FROM seen_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+            OR EXTRACT(YEAR FROM rated_at) = EXTRACT(YEAR FROM CURRENT_DATE)
         ) as viewed_movies_this_year,
         ROUND((AVG(rating) / 2)::NUMERIC, 1) as avg_rating
     FROM user_movies
